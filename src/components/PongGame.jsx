@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { useGameLogic } from '../hooks/useGameLogic';
 
 const PongGame = () => {
+  console.log('PongGame component rendering...');
   const canvasRef = useRef(null);
   const [gameStarted, setGameStarted] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(false);
@@ -233,16 +234,27 @@ const PongGame = () => {
       }
     }, [initAudioContext, soundEnabled]);
   
-    const { updateGame, resetGame } = useGameLogic(
-      gameStateRef,
-      soundEnabled,
-      playWallBounceSound,
-      playPaddleHitSound,
-      playScoreSound,
-      playPowerUpSound,
-      setLeaderboardMode,
-      setShowLeaderboard
-    );
+    let updateGame, resetGame;
+    try {
+      console.log('Calling useGameLogic...');
+      const gameLogic = useGameLogic(
+        gameStateRef,
+        soundEnabled,
+        playWallBounceSound,
+        playPaddleHitSound,
+        playScoreSound,
+        playPowerUpSound,
+        setLeaderboardMode,
+        setShowLeaderboard
+      );
+      updateGame = gameLogic.updateGame;
+      resetGame = gameLogic.resetGame;
+      console.log('useGameLogic succeeded');
+    } catch (error) {
+      console.error('useGameLogic failed:', error);
+      updateGame = () => {};
+      resetGame = () => {};
+    }
   
     // Professional-grade rendering with error handling and optimization
     const drawGame = useCallback(() => {
