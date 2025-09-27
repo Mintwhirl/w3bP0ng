@@ -44,6 +44,8 @@ export const useGameLogic = (gameStateRef, soundEnabled, playWallBounceSound, pl
       fastBall: { active: false, timeLeft: 0 },
       multiBall: { active: false, timeLeft: 0, extraBalls: [] },
       shield: { active: false, uses: 0, player: null },
+      chaos: { active: false, timeLeft: 0, effects: [] },
+      freeze: { active: false, timeLeft: 0 },
     };
 
     // HEALTHY ENGAGEMENT: Session tracking
@@ -256,10 +258,32 @@ export const useGameLogic = (gameStateRef, soundEnabled, playWallBounceSound, pl
       const powerUp = gameState.activePowerUps[key];
       if (powerUp.active && powerUp.timeLeft !== undefined) {
         powerUp.timeLeft--;
+
+        // Special chaos effects during active time
+        if (key === 'chaos' && powerUp.active) {
+          if (Math.random() < 0.1) { // 10% chance per frame for chaos
+            // Random ball direction nudge
+            gameState.ball.dx += (Math.random() - 0.5) * 2;
+            gameState.ball.dy += (Math.random() - 0.5) * 2;
+          }
+          if (Math.random() < 0.05) { // 5% chance for paddle size flicker
+            // This creates visual chaos without breaking gameplay
+            addScreenShake(2, 3);
+          }
+        }
+
         if (powerUp.timeLeft <= 0) {
           powerUp.active = false;
           if (key === 'multiBall') {
             powerUp.extraBalls = [];
+          }
+          if (key === 'freeze') {
+            // Restore ball speed when freeze ends
+            const currentSpeed = Math.sqrt(gameState.ball.dx * gameState.ball.dx + gameState.ball.dy * gameState.ball.dy);
+            if (currentSpeed < 3) {
+              gameState.ball.dx *= 3;
+              gameState.ball.dy *= 3;
+            }
           }
         }
       }

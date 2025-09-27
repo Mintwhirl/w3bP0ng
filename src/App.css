@@ -127,59 +127,66 @@ h1::after {
 }
 
 .ai-controls {
-  margin-bottom: 10px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .button {
-  padding: 14px 28px;
-  font-size: 15px;
+  padding: 12px 24px;
+  font-size: 14px;
   font-family: 'Inter', sans-serif;
-  font-weight: 500;
+  font-weight: 600;
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 16px;
+  border: none;
+  border-radius: 12px;
   cursor: pointer;
-  margin-right: 16px;
-  transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+  margin-right: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .button::before {
   content: '';
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.1);
-  opacity: 0;
-  transition: opacity 0.2s ease;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
 }
 
 .button:hover::before {
-  opacity: 1;
+  left: 100%;
 }
 
 .button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .button:active {
-  transform: translateY(0);
+  transform: translateY(-1px) scale(0.98);
+  transition: all 0.1s ease;
 }
 
 .button-ai-on {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.25);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.4);
 }
 
 .button-ai-off {
-  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
-  box-shadow: 0 8px 20px rgba(100, 116, 139, 0.2);
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  box-shadow: 0 6px 24px rgba(107, 114, 128, 0.3);
 }
 
 .difficulty-label {
@@ -192,32 +199,33 @@ h1::after {
 
 .difficulty-button {
   padding: 8px 16px;
-  font-size: 13px;
+  font-size: 12px;
   font-family: 'Inter', sans-serif;
-  font-weight: 500;
+  font-weight: 600;
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
+  border: none;
+  border-radius: 8px;
   cursor: pointer;
-  margin: 0 4px;
-  transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
-  backdrop-filter: blur(8px);
+  margin: 0 3px;
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  backdrop-filter: blur(12px);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  min-width: 70px;
 }
 
 .difficulty-button:hover {
-  transform: translateY(-1px);
-  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px) scale(1.05);
 }
 
 .difficulty-button-active {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-  border-color: rgba(59, 130, 246, 0.5);
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
 }
 
 .difficulty-button-inactive {
   background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
 .controls-text {
@@ -248,10 +256,13 @@ h1::after {
 }
 
 .start-pause-button {
-  padding: 15px 40px;
-  font-size: 20px;
-  border-width: 3px;
-  border-radius: 15px;
+  padding: 16px 48px;
+  font-size: 18px;
+  border: none;
+  border-radius: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  min-width: 160px;
 }
 
 .start-pause-button-mobile {
@@ -261,17 +272,18 @@ h1::after {
 
 .start-button {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  box-shadow: 0 12px 32px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.4);
 }
 
 .pause-button {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  box-shadow: 0 12px 32px rgba(245, 158, 11, 0.3);
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 8px 32px rgba(239, 68, 68, 0.4);
 }
 
 .sound-button {
   padding: 12px 24px;
-  font-size: 16px;
+  font-size: 14px;
+  min-width: 120px;
 }
 
 .sound-button-mobile {
@@ -280,23 +292,25 @@ h1::after {
 }
 
 .sound-on-button {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25);
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  box-shadow: 0 6px 24px rgba(139, 92, 246, 0.4);
 }
 
 .sound-off-button {
   background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-  box-shadow: 0 8px 20px rgba(107, 114, 128, 0.2);
+  box-shadow: 0 6px 24px rgba(107, 114, 128, 0.3);
 }
 
 .leaderboard-button {
   padding: 12px 24px;
-  font-size: 16px;
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.25);
+  font-size: 14px;
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  box-shadow: 0 6px 24px rgba(6, 182, 212, 0.4);
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 140px;
+  justify-content: center;
 }
 
 .leaderboard-button-mobile {

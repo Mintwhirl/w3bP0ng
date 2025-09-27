@@ -5,7 +5,7 @@ const PongGame = () => {
   console.log('PongGame component rendering...');
   const canvasRef = useRef(null);
   const [gameStarted, setGameStarted] = useState(false);
-  const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(true);
   const [aiDifficulty, setAiDifficulty] = useState('medium');
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
@@ -22,20 +22,20 @@ const PongGame = () => {
   const audioContextRef = useRef(null);
   const gameStateRef = useRef({
     ball: {
-      x: 400, // Center X
-      y: 200, // Center Y
+      x: 800, // Center X
+      y: 400, // Center Y
       dx: 4, // Velocity X (pixels per frame)
       dy: 3, // Velocity Y
       radius: 8,
       trail: [], // Particle trail for visual effects
     },
     paddles: {
-      left: { x: 20, y: 150, width: 12, height: 80, speed: 4.5, prevY: 150, velocity: 0 },
-      right: { x: 770, y: 150, width: 12, height: 80, speed: 4.5, prevY: 150, velocity: 0 },
+      left: { x: 40, y: 360, width: 12, height: 80, speed: 4.5, prevY: 360, velocity: 0 },
+      right: { x: 1548, y: 360, width: 12, height: 80, speed: 4.5, prevY: 360, velocity: 0 },
     },
     canvas: {
-      width: Math.min(800, window.innerWidth - 40),
-      height: Math.min(400, window.innerHeight * 0.5),
+      width: Math.min(1600, window.innerWidth - 40),
+      height: Math.min(800, window.innerHeight * 0.8),
     },
     keys: {}, // Track which keys are currently pressed
     touch: {
@@ -45,9 +45,9 @@ const PongGame = () => {
     score: { left: 0, right: 0 }, // Player scores
     gameWinner: null, // null, 'left', or 'right'
     ai: {
-      enabled: false, // AI opponent on/off
+      enabled: true, // AI opponent on/off
       difficulty: 'medium', // 'easy', 'medium', 'hard'
-      targetY: 200, // Where AI wants to move paddle
+      targetY: 400, // Where AI wants to move paddle
       reactionDelay: 0, // Frames to wait before reacting
       lastReactionTime: 0, // Track when AI last "saw" ball
     },
@@ -63,6 +63,8 @@ const PongGame = () => {
       fastBall: { active: false, timeLeft: 0 },
       multiBall: { active: false, timeLeft: 0, extraBalls: [] },
       shield: { active: false, uses: 0, player: null },
+      chaos: { active: false, timeLeft: 0, effects: [] },
+      freeze: { active: false, timeLeft: 0 },
     },
     powerUpSpawnTimer: 180, // Start with 3 seconds delay - more chaos!
     gameStartTime: 0, // Track when game started
