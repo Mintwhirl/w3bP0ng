@@ -148,19 +148,160 @@ const PongGame = () => {
     gameStartTime: 0, // Track when game started
   });
 
-  const { updateGame, resetGame } = useGameLogic(
-    gameStateRef,
-    soundEnabled,
-    playWallBounceSound,
-    playPaddleHitSound,
-    playScoreSound,
-    playPowerUpSound,
-    setLeaderboardMode,
-    setShowLeaderboard
-  );
-
-  const drawGame = useCallback(() => {
-    const canvas = canvasRef.current;
+    const initAudioContext = useCallback(() => {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      return audioContextRef.current;
+    }, []);
+  
+    const playPaddleHitSound = useCallback((ballSpeed = 5) => {
+      if (!soundEnabled) return;
+      const audioCtx = initAudioContext();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+  
+      // Create oscillator for the "pok" sound
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      const filterNode = audioCtx.createBiquadFilter();
+  
+      // Configure filter for sharper attack
+      filterNode.type = 'lowpass';
+      filterNode.frequency.setValueAtTime(2000, audioCtx.currentTime);
+      filterNode.Q.setValueAtTime(1, audioCtx.currentTime);
+  
+      // Dynamic frequency based on ball speed
+      const baseFreq = 800 + (ballSpeed * 30);
+      oscillator.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(baseFreq * 0.3, audioCtx.currentTime + 0.1);
+  
+      // Sharp attack, quick decay
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+  
+      // Connect nodes
+      oscillator.connect(filterNode);
+      filterNode.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+  
+      // Play sound
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.15);
+    }, [initAudioContext, soundEnabled]);
+  
+    const playWallBounceSound = useCallback(() => {
+      if (!soundEnabled) return;
+      const audioCtx = initAudioContext();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+  
+      // Create a softer "thump" for walls
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+  
+      oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.2);
+  
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+  
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+  
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.25);
+    }, [initAudioContext, soundEnabled]);
+  
+    const playPowerUpSound = useCallback(() => {
+      if (!soundEnabled) return;
+      const audioCtx = initAudioContext();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+  
+      // Ascending chime sound
+      const frequencies = [523, 659, 784, 1047]; // C, E, G, C octave
+  
+      frequencies.forEach((freq, index) => {
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+  
+        oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime + index * 0.1);
+  
+        gainNode.gain.setValueAtTime(0, audioCtx.currentTime + index * 0.1);
+        gainNode.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + index * 0.1 + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + index * 0.1 + 0.3);
+  
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+  
+        oscillator.start(audioCtx.currentTime + index * 0.1);
+        oscillator.stop(audioCtx.currentTime + index * 0.1 + 0.3);
+      });
+    }, [initAudioContext, soundEnabled]);
+  
+    const playScoreSound = useCallback((isWin = false) => {
+      if (!soundEnabled) return;
+      const audioCtx = initAudioContext();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+  
+      if (isWin) {
+        // Victory fanfare
+        const notes = [523, 659, 784, 1047, 1319]; // C, E, G, C, E
+        notes.forEach((freq, index) => {
+          const oscillator = audioCtx.createOscillator();
+          const gainNode = audioCtx.createGain();
+  
+          oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime + index * 0.15);
+  
+          gainNode.gain.setValueAtTime(0, audioCtx.currentTime + index * 0.15);
+          gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + index * 0.15 + 0.1);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + index * 0.15 + 0.5);
+  
+          oscillator.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+  
+          oscillator.start(audioCtx.currentTime + index * 0.15);
+          oscillator.stop(audioCtx.currentTime + index * 0.15 + 0.5);
+        });
+      } else {
+        // Regular score sound
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+  
+        oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
+  
+        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime + 0.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+  
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+  
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + 0.8);
+      }
+    }, [initAudioContext, soundEnabled]);
+  
+    const { updateGame, resetGame } = useGameLogic(
+      gameStateRef,
+      soundEnabled,
+      playWallBounceSound,
+      playPaddleHitSound,
+      playScoreSound,
+      playPowerUpSound,
+      setLeaderboardMode,
+      setShowLeaderboard
+    );
+  
+    const drawGame = useCallback(() => {    const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
@@ -395,148 +536,7 @@ const PongGame = () => {
     ctx.restore();
   }, []);
 
-  // Audio system functions
-  const initAudioContext = useCallback(() => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    return audioContextRef.current;
-  }, []);
 
-  const playPaddleHitSound = useCallback((ballSpeed = 5) => {
-    if (!soundEnabled) return;
-    const audioCtx = initAudioContext();
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-
-    // Create oscillator for the "pok" sound
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    const filterNode = audioCtx.createBiquadFilter();
-
-    // Configure filter for sharper attack
-    filterNode.type = 'lowpass';
-    filterNode.frequency.setValueAtTime(2000, audioCtx.currentTime);
-    filterNode.Q.setValueAtTime(1, audioCtx.currentTime);
-
-    // Dynamic frequency based on ball speed
-    const baseFreq = 800 + (ballSpeed * 30);
-    oscillator.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(baseFreq * 0.3, audioCtx.currentTime + 0.1);
-
-    // Sharp attack, quick decay
-    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.01);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-
-    // Connect nodes
-    oscillator.connect(filterNode);
-    filterNode.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-
-    // Play sound
-    oscillator.start(audioCtx.currentTime);
-    oscillator.stop(audioCtx.currentTime + 0.15);
-  }, [initAudioContext, soundEnabled]);
-
-  const playWallBounceSound = useCallback(() => {
-    if (!soundEnabled) return;
-    const audioCtx = initAudioContext();
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-
-    // Create a softer "thump" for walls
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-
-    oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.2);
-
-    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.02);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-
-    oscillator.start(audioCtx.currentTime);
-    oscillator.stop(audioCtx.currentTime + 0.25);
-  }, [initAudioContext, soundEnabled]);
-
-  const playPowerUpSound = useCallback(() => {
-    if (!soundEnabled) return;
-    const audioCtx = initAudioContext();
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-
-    // Ascending chime sound
-    const frequencies = [523, 659, 784, 1047]; // C, E, G, C octave
-
-    frequencies.forEach((freq, index) => {
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-
-      oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime + index * 0.1);
-
-      gainNode.gain.setValueAtTime(0, audioCtx.currentTime + index * 0.1);
-      gainNode.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + index * 0.1 + 0.05);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + index * 0.1 + 0.3);
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-
-      oscillator.start(audioCtx.currentTime + index * 0.1);
-      oscillator.stop(audioCtx.currentTime + index * 0.1 + 0.3);
-    });
-  }, [initAudioContext, soundEnabled]);
-
-  const playScoreSound = useCallback((isWin = false) => {
-    if (!soundEnabled) return;
-    const audioCtx = initAudioContext();
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-
-    if (isWin) {
-      // Victory fanfare
-      const notes = [523, 659, 784, 1047, 1319]; // C, E, G, C, E
-      notes.forEach((freq, index) => {
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-
-        oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime + index * 0.15);
-
-        gainNode.gain.setValueAtTime(0, audioCtx.currentTime + index * 0.15);
-        gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + index * 0.15 + 0.1);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + index * 0.15 + 0.5);
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-
-        oscillator.start(audioCtx.currentTime + index * 0.15);
-        oscillator.stop(audioCtx.currentTime + index * 0.15 + 0.5);
-      });
-    } else {
-      // Regular score sound
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-
-      oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
-
-      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-      gainNode.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime + 0.1);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-
-      oscillator.start(audioCtx.currentTime);
-      oscillator.stop(audioCtx.currentTime + 0.8);
-    }
-  }, [initAudioContext, soundEnabled]);
 
   // Leaderboard functions
   const loadLeaderboard = useCallback(() => {
