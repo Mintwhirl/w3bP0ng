@@ -2,6 +2,7 @@
   "name": "web-pong",
   "private": true,
   "version": "0.0.0",
+  "homepage": "https://mintwhirl.github.io/w3bP0ng/",
   "type": "module",
   "scripts": {
     "dev": "vite",
