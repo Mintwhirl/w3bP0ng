@@ -25,27 +25,6 @@ const PongGame = () => {
     height: Math.min(700, window.innerHeight - 300),
   });
 
-  const initializeGamePositions = useCallback(() => {
-    const gameState = gameStateRef.current;
-    const canvasSize = gameState.canvas;
-
-    // Center ball
-    gameState.ball.x = canvasSize.width / 2;
-    gameState.ball.y = canvasSize.height / 2;
-
-    // Position paddles
-    gameState.paddles.left.y = (canvasSize.height - gameState.paddles.left.height) / 2;
-    gameState.paddles.right.x = canvasSize.width - 40 - gameState.paddles.right.width;
-    gameState.paddles.right.y = (canvasSize.height - gameState.paddles.right.height) / 2;
-
-    // Set AI target
-    gameState.ai.targetY = canvasSize.height / 2;
-
-    // Update prev positions
-    gameState.paddles.left.prevY = gameState.paddles.left.y;
-    gameState.paddles.right.prevY = gameState.paddles.right.y;
-  }, [gameStateRef]);
-
   const gameStateRef = useRef({
     ball: {
       x: 0, // Will be set dynamically
@@ -116,6 +95,27 @@ const PongGame = () => {
       xpToNext: 100,
     }
   });
+
+  const initializeGamePositions = useCallback(() => {
+    const gameState = gameStateRef.current;
+    const canvasSize = gameState.canvas;
+
+    // Center ball
+    gameState.ball.x = canvasSize.width / 2;
+    gameState.ball.y = canvasSize.height / 2;
+
+    // Position paddles
+    gameState.paddles.left.y = (canvasSize.height - gameState.paddles.left.height) / 2;
+    gameState.paddles.right.x = canvasSize.width - 40 - gameState.paddles.right.width;
+    gameState.paddles.right.y = (canvasSize.height - gameState.paddles.right.height) / 2;
+
+    // Set AI target
+    gameState.ai.targetY = canvasSize.height / 2;
+
+    // Update prev positions
+    gameState.paddles.left.prevY = gameState.paddles.left.y;
+    gameState.paddles.right.prevY = gameState.paddles.right.y;
+  }, []);
 
     const initAudioContext = useCallback(() => {
       if (!audioContextRef.current) {
