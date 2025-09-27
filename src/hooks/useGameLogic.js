@@ -2,6 +2,12 @@
 import { useCallback } from 'react';
 
 export const useGameLogic = (gameStateRef, soundEnabled, playWallBounceSound, playPaddleHitSound, playScoreSound, playPowerUpSound, setLeaderboardMode, setShowLeaderboard) => {
+  const addScreenShake = useCallback((intensity = 5, duration = 10) => {
+    const gameState = gameStateRef.current;
+    gameState.screenShake.intensity = intensity;
+    gameState.screenShake.duration = duration;
+  }, [gameStateRef]);
+
   const checkLevelUp = useCallback(() => {
     const gameState = gameStateRef.current;
     const progress = gameState.progressBar;
@@ -57,12 +63,6 @@ export const useGameLogic = (gameStateRef, soundEnabled, playWallBounceSound, pl
 
     resetBall();
   }, [gameStateRef, resetBall]);
-
-  const addScreenShake = useCallback((intensity = 5, duration = 10) => {
-    const gameState = gameStateRef.current;
-    gameState.screenShake.intensity = intensity;
-    gameState.screenShake.duration = duration;
-  }, [gameStateRef]);
 
   const updateScreenShake = useCallback(() => {
     const shake = gameStateRef.current.screenShake;
