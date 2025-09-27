@@ -2,12 +2,28 @@
 import { useCallback } from 'react';
 
 export const useGameLogic = (gameStateRef, soundEnabled, playWallBounceSound, playPaddleHitSound, playScoreSound, playPowerUpSound, setLeaderboardMode, setShowLeaderboard) => {
+  const checkLevelUp = useCallback(() => {
+    const gameState = gameStateRef.current;
+    const progress = gameState.progressBar;
+
+    if (progress.currentXP >= progress.xpToNext) {
+      progress.level++;
+      progress.currentXP -= progress.xpToNext;
+      progress.xpToNext = Math.floor(progress.xpToNext * 1.5); // Progressive XP requirements
+
+      // Visual/audio feedback for level up
+      addScreenShake(10, 20);
+      // Could add level up sound here
+    }
+  }, [gameStateRef, addScreenShake]);
+
   const resetBall = useCallback(() => {
     const gameState = gameStateRef.current;
     gameState.ball.x = gameState.canvas.width / 2;
     gameState.ball.y = gameState.canvas.height / 2;
-    gameState.ball.dx = Math.random() > 0.5 ? 4 : -4;
-    gameState.ball.dy = Math.random() * 4 - 2;
+    // Significantly faster starting speed
+    gameState.ball.dx = Math.random() > 0.5 ? 6 : -6;
+    gameState.ball.dy = (Math.random() * 6 - 3) * 0.8; // More dynamic Y velocity
   }, [gameStateRef]);
 
   const resetGame = useCallback(() => {
@@ -16,13 +32,29 @@ export const useGameLogic = (gameStateRef, soundEnabled, playWallBounceSound, pl
     gameState.score.right = 0;
     gameState.gameWinner = null;
     gameState.powerUps = [];
-    gameState.powerUpSpawnTimer = 420;
+    gameState.powerUpSpawnTimer = 180;
     gameState.activePowerUps = {
       bigPaddle: { active: false, timeLeft: 0, player: null },
       fastBall: { active: false, timeLeft: 0 },
       multiBall: { active: false, timeLeft: 0, extraBalls: [] },
       shield: { active: false, uses: 0, player: null },
     };
+
+    // HEALTHY ENGAGEMENT: Session tracking
+    gameState.session.sessionsPlayed++;
+    gameState.session.rallies = 0;
+    gameState.gameStartTime = Date.now();
+
+    // Gentle break suggestion after 20 minutes of play (non-intrusive)
+    const now = Date.now();
+    if (gameState.session.sessionsPlayed > 0 && gameState.session.sessionsPlayed % 8 === 0) {
+      if (now - gameState.session.lastBreakSuggestion > 1200000) { // 20 minutes
+        gameState.session.lastBreakSuggestion = now;
+        // This would trigger a gentle visual hint, not a popup
+        console.log("Consider taking a short break! 🌟");
+      }
+    }
+
     resetBall();
   }, [gameStateRef, resetBall]);
 
@@ -64,13 +96,13 @@ export const useGameLogic = (gameStateRef, soundEnabled, playWallBounceSound, pl
   const getAISettings = useCallback((difficulty) => {
     switch (difficulty) {
       case 'easy':
-        return { speed: 3, reactionTime: 15, accuracy: 0.7, predictionEnabled: false };
+        return { speed: 5.5, reactionTime: 12, accuracy: 0.8, predictionEnabled: false };
       case 'medium':
-        return { speed: 4, reactionTime: 8, accuracy: 0.85, predictionEnabled: true };
+        return { speed: 6.5, reactionTime: 6, accuracy: 0.9, predictionEnabled: true };
       case 'hard':
-        return { speed: 5, reactionTime: 3, accuracy: 0.95, predictionEnabled: true };
+        return { speed: 7.5, reactionTime: 2, accuracy: 0.98, predictionEnabled: true };
       default:
-        return { speed: 4, reactionTime: 8, accuracy: 0.85, predictionEnabled: true };
+        return { speed: 6.5, reactionTime: 6, accuracy: 0.9, predictionEnabled: true };
     }
   }, []);
 
@@ -175,7 +207,7 @@ export const useGameLogic = (gameStateRef, soundEnabled, playWallBounceSound, pl
         break;
     }
     gameState.powerUps = gameState.powerUps.filter(p => p.id !== powerUp.id);
-    gameState.powerUpSpawnTimer = (5 + Math.random() * 25) * 60;
+    gameState.powerUpSpawnTimer = (2 + Math.random() * 8) * 60; // Much more frequent chaos!
     playPowerUpSound();
     addScreenShake(8, 15);
   }, [gameStateRef, playPowerUpSound, addScreenShake]);
@@ -328,39 +360,107 @@ export const useGameLogic = (gameStateRef, soundEnabled, playWallBounceSound, pl
     if (ball.dx < 0 && checkPaddleCollision(ball, paddles.left, 'left')) {
       ball.dx = -ball.dx;
       ball.x = paddles.left.x + paddles.left.width + ball.radius;
-      const paddleInfluence = 0.3;
+
+      // HEALTHY ENGAGEMENT: Track rally progression
+      gameState.session.rallies++;
+      gameState.session.totalHits++;
+      gameState.session.longestRally = Math.max(gameState.session.longestRally, gameState.session.rallies);
+
+      // Award XP for skill-based actions (not just time)
+      gameState.progressBar.currentXP += 5; // Base XP per hit
+
+      // HARDCORE: Progressive ball acceleration - gets 10% faster each hit!
+      ball.dx *= 1.1;
+      ball.dy *= 1.1;
+
+      const paddleInfluence = 0.4; // Increased for more chaos
       ball.dy += paddles.left.velocity * paddleInfluence;
       const hitPosition = (ball.y - (paddles.left.y + paddles.left.height / 2)) / (paddles.left.height / 2);
-      ball.dy += hitPosition * 2;
-      ball.dy = Math.max(-8, Math.min(8, ball.dy));
+      ball.dy += hitPosition * 3.5; // More extreme angle changes
+      ball.dy = Math.max(-15, Math.min(15, ball.dy)); // Allow faster Y speeds
+
+      // Random chaos factor - 25% chance for surprise direction change
+      if (Math.random() < 0.25) {
+        ball.dy += (Math.random() - 0.5) * 6;
+      }
+
       const currentSpeed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
-      if (currentSpeed < 3) {
-        const speedMultiplier = 3 / currentSpeed;
+      if (currentSpeed < 4) { // Higher minimum speed
+        const speedMultiplier = 4 / currentSpeed;
         ball.dx *= speedMultiplier;
         ball.dy *= speedMultiplier;
       }
+
+      // Check for achievements (variable ratio rewards)
+      if (gameState.session.rallies === 10 && !gameState.achievements.rally10) {
+        gameState.achievements.rally10 = true;
+        gameState.progressBar.currentXP += 50; // Bonus XP for achievement
+      }
+      if (gameState.session.rallies === 25 && !gameState.achievements.rally25) {
+        gameState.achievements.rally25 = true;
+        gameState.progressBar.currentXP += 100;
+      }
+      if (currentSpeed > 12 && !gameState.achievements.speedDemon) {
+        gameState.achievements.speedDemon = true;
+        gameState.progressBar.currentXP += 75;
+      }
+
       const ballSpeedLeft = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
       playPaddleHitSound(ballSpeedLeft);
-      addScreenShake(6, 12);
+      addScreenShake(8, 15); // More intense screen shake
     }
 
     if (ball.dx > 0 && checkPaddleCollision(ball, paddles.right, 'right')) {
       ball.dx = -ball.dx;
       ball.x = paddles.right.x - ball.radius;
-      const paddleInfluence = 0.3;
+
+      // HEALTHY ENGAGEMENT: Track rally progression
+      gameState.session.rallies++;
+      gameState.session.totalHits++;
+      gameState.session.longestRally = Math.max(gameState.session.longestRally, gameState.session.rallies);
+
+      // Award XP for skill-based actions (not just time)
+      gameState.progressBar.currentXP += 5; // Base XP per hit
+
+      // HARDCORE: Progressive ball acceleration - gets 10% faster each hit!
+      ball.dx *= 1.1;
+      ball.dy *= 1.1;
+
+      const paddleInfluence = 0.4; // Increased for more chaos
       ball.dy += paddles.right.velocity * paddleInfluence;
       const hitPosition = (ball.y - (paddles.right.y + paddles.right.height / 2)) / (paddles.right.height / 2);
-      ball.dy += hitPosition * 2;
-      ball.dy = Math.max(-8, Math.min(8, ball.dy));
+      ball.dy += hitPosition * 3.5; // More extreme angle changes
+      ball.dy = Math.max(-15, Math.min(15, ball.dy)); // Allow faster Y speeds
+
+      // Random chaos factor - 25% chance for surprise direction change
+      if (Math.random() < 0.25) {
+        ball.dy += (Math.random() - 0.5) * 6;
+      }
+
       const currentSpeed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
-      if (currentSpeed < 3) {
-        const speedMultiplier = 3 / currentSpeed;
+      if (currentSpeed < 4) { // Higher minimum speed
+        const speedMultiplier = 4 / currentSpeed;
         ball.dx *= speedMultiplier;
         ball.dy *= speedMultiplier;
       }
+
+      // Check for achievements (variable ratio rewards)
+      if (gameState.session.rallies === 10 && !gameState.achievements.rally10) {
+        gameState.achievements.rally10 = true;
+        gameState.progressBar.currentXP += 50; // Bonus XP for achievement
+      }
+      if (gameState.session.rallies === 25 && !gameState.achievements.rally25) {
+        gameState.achievements.rally25 = true;
+        gameState.progressBar.currentXP += 100;
+      }
+      if (currentSpeed > 12 && !gameState.achievements.speedDemon) {
+        gameState.achievements.speedDemon = true;
+        gameState.progressBar.currentXP += 75;
+      }
+
       const ballSpeedRight = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
       playPaddleHitSound(ballSpeedRight);
-      addScreenShake(6, 12);
+      addScreenShake(8, 15); // More intense screen shake
     }
 
     if (gameState.activePowerUps.multiBall.active) {
@@ -397,16 +497,46 @@ export const useGameLogic = (gameStateRef, soundEnabled, playWallBounceSound, pl
     if (ball.x < 0) {
       gameState.score.right++;
       playScoreSound();
+
+      // HEALTHY ENGAGEMENT: Reset rally counter and award XP for rally achievement
+      if (gameState.session.rallies >= 5) {
+        gameState.progressBar.currentXP += gameState.session.rallies * 2; // Bonus XP for rally length
+      }
+      gameState.session.rallies = 0; // Reset for new rally
+
       resetBall();
     } else if (ball.x > canvas.width) {
       gameState.score.left++;
       playScoreSound();
+
+      // HEALTHY ENGAGEMENT: Reset rally counter and award XP for rally achievement
+      if (gameState.session.rallies >= 5) {
+        gameState.progressBar.currentXP += gameState.session.rallies * 2; // Bonus XP for rally length
+      }
+      gameState.session.rallies = 0; // Reset for new rally
+
       resetBall();
     }
 
     if (gameState.score.left >= 11) {
       gameState.gameWinner = 'left';
       playScoreSound(true);
+
+      // HEALTHY ENGAGEMENT: Achievement tracking for player wins
+      if (!gameState.achievements.firstWin) {
+        gameState.achievements.firstWin = true;
+        gameState.progressBar.currentXP += 200; // Big XP boost for first win
+      }
+
+      // Quick reflexes achievement (win in under 2 minutes)
+      const gameTime = Date.now() - gameState.gameStartTime;
+      if (gameTime < 120000 && !gameState.achievements.quickReflexes) {
+        gameState.achievements.quickReflexes = true;
+        gameState.progressBar.currentXP += 150;
+      }
+
+      gameState.progressBar.currentXP += 100; // Base win bonus
+
       if (gameState.score.left > gameState.score.right) {
         setLeaderboardMode('gameEnd');
         setShowLeaderboard(true);
@@ -419,7 +549,10 @@ export const useGameLogic = (gameStateRef, soundEnabled, playWallBounceSound, pl
         setShowLeaderboard(true);
       }
     }
-  }, [gameStateRef, resetGame, updateScreenShake, spawnPowerUp, activatePowerUp, updateAI, checkPaddleCollision, playWallBounceSound, playPaddleHitSound, playScoreSound, setLeaderboardMode, setShowLeaderboard, resetBall]);
+    // HEALTHY ENGAGEMENT: Check for level progression at end of update
+    checkLevelUp();
+
+  }, [gameStateRef, resetGame, updateScreenShake, spawnPowerUp, activatePowerUp, updateAI, checkPaddleCollision, playWallBounceSound, playPaddleHitSound, playScoreSound, setLeaderboardMode, setShowLeaderboard, resetBall, checkLevelUp]);
 
   return {
     updateGame,

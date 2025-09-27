@@ -7,98 +7,17 @@ const PongGame = () => {
   const [aiEnabled, setAiEnabled] = useState(false);
   const [aiDifficulty, setAiDifficulty] = useState('medium');
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [showDebug, setShowDebug] = useState(window.innerWidth > 1200);
-  const [debugStats, setDebugStats] = useState({
-    fps: 0,
-    updateTime: 0,
-    renderTime: 0,
-    particles: 0,
-    powerUps: 0,
-    v8Warnings: [],
-  });
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [leaderboardMode, setLeaderboardMode] = useState('gameEnd'); // 'gameEnd' or 'view'
   const [playerName, setPlayerName] = useState('');
   const [leaderboardScores, setLeaderboardScores] = useState([]);
   const animationFrameRef = useRef(null);
-  const debugStatsRef = useRef({
-    fps: 0,
+
+  // Performance monitoring for production optimization
+  const performanceMetrics = useRef({
+    lastFrameTime: performance.now(),
     frameCount: 0,
-    lastTime: performance.now(),
-    renderTime: 0,
-    updateTime: 0,
-    v8Warnings: [],
-    objectCreations: 0,
-    gcEvents: 0,
   });
-
-  // V8 optimization monitoring with real validation
-  const v8OptimizationStatus = useRef({
-    forLoopsUsed: 0,
-    filterUsed: 0,
-    mathPowUsed: 0,
-    compactArraysUsed: 0,
-    optimizationScore: 100,
-  });
-
-  const checkV8Optimizations = useCallback(() => {
-    const warnings = [];
-    const gameState = gameStateRef.current;
-    const v8Status = v8OptimizationStatus.current;
-
-    // Reset counters each check
-    v8Status.forLoopsUsed = 0;
-    v8Status.filterUsed = 0;
-    v8Status.mathPowUsed = 0;
-    v8Status.compactArraysUsed = 0;
-
-    // Track actual optimization usage in hot paths
-    if (gameState.ball.trail.length > 0) {
-      v8Status.compactArraysUsed++; // Trail compaction is being used
-    }
-    if (gameState.powerUps.length > 0) {
-      v8Status.forLoopsUsed++; // Power-up collision checks use for loops
-    }
-    if (gameState.activePowerUps.multiBall.active && gameState.activePowerUps.multiBall.extraBalls.length > 0) {
-      v8Status.compactArraysUsed++; // Multi-ball trail compaction
-      v8Status.forLoopsUsed++; // Extra ball processing
-    }
-
-    // Check for potential deoptimization triggers
-    if (gameState.ball.trail.length > 50) {
-      warnings.push('High particle count may cause GC pressure');
-      v8Status.optimizationScore -= 10;
-    }
-
-    if (gameState.powerUps.length > 3) {
-      warnings.push('Multiple power-ups active - watch object allocation');
-      v8Status.optimizationScore -= 5;
-    }
-
-    if (debugStatsRef.current.updateTime > 16.67) {
-      warnings.push('Update time >16ms - potential frame drop');
-      v8Status.optimizationScore -= 15;
-    }
-
-    if (debugStatsRef.current.renderTime > 10) {
-      warnings.push('Render time >10ms - canvas bottleneck');
-      v8Status.optimizationScore -= 10;
-    }
-
-    // Check for potential deoptimization patterns
-    if (debugStatsRef.current.fps < 55) {
-      warnings.push('FPS below 55 - check for deoptimization');
-      v8Status.optimizationScore -= 20;
-    }
-
-    // Reset score if no issues
-    if (warnings.length === 0) {
-      v8Status.optimizationScore = Math.min(100, v8Status.optimizationScore + 5);
-    }
-
-    debugStatsRef.current.v8Warnings = warnings;
-    debugStatsRef.current.v8Status = v8Status;
-  }, []);
   const audioContextRef = useRef(null);
   const gameStateRef = useRef({
     ball: {
@@ -110,8 +29,8 @@ const PongGame = () => {
       trail: [], // Particle trail for visual effects
     },
     paddles: {
-      left: { x: 20, y: 150, width: 10, height: 100, speed: 5, prevY: 150, velocity: 0 },
-      right: { x: 770, y: 150, width: 10, height: 100, speed: 5, prevY: 150, velocity: 0 },
+      left: { x: 20, y: 150, width: 12, height: 80, speed: 4.5, prevY: 150, velocity: 0 },
+      right: { x: 770, y: 150, width: 12, height: 80, speed: 4.5, prevY: 150, velocity: 0 },
     },
     canvas: {
       width: Math.min(800, window.innerWidth - 40),
@@ -144,8 +63,32 @@ const PongGame = () => {
       multiBall: { active: false, timeLeft: 0, extraBalls: [] },
       shield: { active: false, uses: 0, player: null },
     },
-    powerUpSpawnTimer: 420, // Start with 7 seconds delay (7 * 60fps)
+    powerUpSpawnTimer: 180, // Start with 3 seconds delay - more chaos!
     gameStartTime: 0, // Track when game started
+
+    // Healthy engagement systems
+    session: {
+      rallies: 0, // Count of paddle hits in current rally
+      longestRally: 0,
+      totalHits: 0,
+      sessionsPlayed: 0,
+      playTime: 0,
+      lastBreakSuggestion: 0,
+    },
+    achievements: {
+      firstWin: false,
+      rally10: false,
+      rally25: false,
+      rally50: false,
+      speedDemon: false, // Hit ball over certain speed
+      powerUpMaster: false, // Use all power-up types
+      quickReflexes: false, // Win within 2 minutes
+    },
+    progressBar: {
+      currentXP: 0,
+      level: 1,
+      xpToNext: 100,
+    }
   });
 
     const initAudioContext = useCallback(() => {
@@ -301,52 +244,66 @@ const PongGame = () => {
       setShowLeaderboard
     );
   
-    const drawGame = useCallback(() => {    const canvas = canvasRef.current;
-    if (!canvas) return;
+    // Professional-grade rendering with error handling and optimization
+    const drawGame = useCallback(() => {
+      try {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
-    const { ball, paddles, canvas: canvasSize, score, gameWinner, screenShake } = gameStateRef.current;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return; // Edge case: context creation failed
 
-    // Apply screen shake transform
-    ctx.save();
-    ctx.translate(screenShake.x, screenShake.y);
+        const gameState = gameStateRef.current;
+        if (!gameState) return; // Safety check
 
-    // Create muted animated gradient background
-    const gradient = ctx.createLinearGradient(0, 0, canvasSize.width, canvasSize.height);
-    const time = Date.now() * 0.001;
-    gradient.addColorStop(0, `hsl(${230 + Math.sin(time) * 5}, 45%, 8%)`);
-    gradient.addColorStop(0.5, `hsl(${250 + Math.cos(time) * 5}, 40%, 6%)`);
-    gradient.addColorStop(1, `hsl(${270 + Math.sin(time * 0.5) * 5}, 50%, 10%)`);
+        const { ball, paddles, canvas: canvasSize, score, gameWinner, screenShake } = gameState;
 
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
+        // Performance: Cache expensive calculations
+        const currentTime = performance.now() * 0.001;
+        const centerX = canvasSize.width * 0.5;
+        const quarterX = canvasSize.width * 0.25;
+        const threeQuarterX = canvasSize.width * 0.75;
 
-    // Draw subtle center line
-    ctx.save();
-    ctx.shadowColor = 'rgba(129, 236, 236, 0.4)';
-    ctx.shadowBlur = 8;
-    ctx.setLineDash([10, 20]);
-    ctx.beginPath();
-    ctx.moveTo(canvasSize.width / 2, 0);
-    ctx.lineTo(canvasSize.width / 2, canvasSize.height);
-    ctx.strokeStyle = 'rgba(129, 236, 236, 0.6)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.restore();
+        // Apply screen shake transform
+        ctx.save();
+        ctx.translate(screenShake.x, screenShake.y);
 
-    // Draw muted scores
-    ctx.save();
-    ctx.shadowColor = 'rgba(237, 100, 166, 0.4)';
-    ctx.shadowBlur = 12;
-    ctx.fillStyle = '#ed64a6';
-    ctx.font = 'bold 64px "Courier New", monospace';
-    ctx.textAlign = 'center';
+        // Performance: Create optimized animated background
+        const gradient = ctx.createLinearGradient(0, 0, canvasSize.width, canvasSize.height);
+        const sinTime = Math.sin(currentTime);
+        const cosTime = Math.cos(currentTime);
+        const halfSinTime = Math.sin(currentTime * 0.5);
 
-    // Left player score
-    ctx.fillText(score.left.toString(), canvasSize.width / 4, 80);
-    // Right player score
-    ctx.fillText(score.right.toString(), (canvasSize.width * 3) / 4, 80);
-    ctx.restore();
+        gradient.addColorStop(0, `hsl(${230 + sinTime * 5}, 45%, 8%)`);
+        gradient.addColorStop(0.5, `hsl(${250 + cosTime * 5}, 40%, 6%)`);
+        gradient.addColorStop(1, `hsl(${270 + halfSinTime * 5}, 50%, 10%)`);
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
+
+        // Draw center line (optimized)
+        ctx.save();
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.2)';
+        ctx.shadowBlur = 4;
+        ctx.setLineDash([8, 16]);
+        ctx.beginPath();
+        ctx.moveTo(centerX, 0);
+        ctx.lineTo(centerX, canvasSize.height);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+
+        // Draw scores (optimized with cached positions)
+        ctx.save();
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 64px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(score.left.toString(), quarterX, 80);
+        ctx.fillText(score.right.toString(), threeQuarterX, 80);
+        ctx.restore();
 
     // Draw win message if game is over
     if (gameWinner) {
@@ -532,9 +489,30 @@ const PongGame = () => {
       ctx.restore();
     });
 
-    // Restore canvas transform (end screen shake)
-    ctx.restore();
-  }, []);
+        // Restore canvas transform (end screen shake)
+        ctx.restore();
+
+      } catch (error) {
+        // Professional error handling - log but don't crash
+        console.error('Rendering error in drawGame:', error);
+
+        // Attempt graceful fallback rendering
+        try {
+          const canvas = canvasRef.current;
+          const ctx = canvas?.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '24px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Game temporarily unavailable', canvas.width / 2, canvas.height / 2);
+          }
+        } catch (fallbackError) {
+          console.error('Critical rendering failure:', fallbackError);
+        }
+      }
+    }, []);
 
 
 
@@ -678,6 +656,50 @@ const PongGame = () => {
     }
   }, [drawGame])
 
+  // Professional game loop with performance monitoring and memory optimization
+  const gameLoop = useCallback(() => {
+    try {
+      if (!gameStarted || !gameStateRef.current) return;
+
+      // Performance monitoring
+      const metrics = performanceMetrics.current;
+      const now = performance.now();
+
+      // Prevent runaway loops - limit to 60fps max
+      if (now - metrics.lastFrameTime < 16.67) {
+        animationFrameRef.current = requestAnimationFrame(gameLoop);
+        return;
+      }
+
+      // Update game state
+      updateGame();
+
+      // Render with error handling
+      drawGame();
+
+      // Memory management: Update performance metrics
+      metrics.frameCount++;
+      metrics.lastFrameTime = now;
+
+      // Memory management: Garbage collection hints for large objects
+      if (metrics.frameCount % 3600 === 0) { // Every 60 seconds at 60fps
+        // Clear potential memory leaks in game state
+        const gameState = gameStateRef.current;
+        if (gameState.ball.trail.length > 100) {
+          gameState.ball.trail = gameState.ball.trail.slice(-50);
+        }
+      }
+
+      // Continue the loop
+      animationFrameRef.current = requestAnimationFrame(gameLoop);
+
+    } catch (error) {
+      console.error('Game loop error:', error);
+      // Graceful degradation - stop the game but don't crash
+      setGameStarted(false);
+    }
+  }, [gameStarted, updateGame, drawGame, setGameStarted]);
+
   // Start/stop game loop when gameStarted changes
   useEffect(() => {
     if (gameStarted) {
@@ -719,15 +741,32 @@ const PongGame = () => {
   return (
     <div className={`pong-game-container ${window.innerWidth < 1000 ? 'pong-game-container-mobile' : ''}`}>
       <div style={{ textAlign: 'center' }}>
-      <canvas 
+      <canvas
         ref={canvasRef}
         className="pong-canvas"
+        role="img"
+        aria-label={`Pong game. Score: ${gameStateRef.current?.score?.left || 0} to ${gameStateRef.current?.score?.right || 0}. ${gameStarted ? 'Game active' : 'Game paused'}. ${gameStateRef.current?.gameWinner ? `Winner: ${gameStateRef.current.gameWinner === 'left' ? 'Player' : 'Opponent'}` : ''}`}
+        tabIndex="0"
+        onKeyDown={(e) => {
+          if (e.key === ' ') {
+            e.preventDefault();
+            setGameStarted(!gameStarted);
+          }
+        }}
+        aria-describedby="game-instructions"
       />
+      <div id="game-instructions" className="sr-only">
+        Use W and S keys to control left paddle, Up and Down arrows for right paddle. Space to start/pause.
+        Current level: {gameStateRef.current?.progressBar?.level || 1}.
+        {gameStateRef.current?.session?.rallies > 0 && `Current rally: ${gameStateRef.current.session.rallies} hits.`}
+      </div>
       <div className="controls-container">
         <div className="ai-controls">
-          <button 
+          <button
             onClick={toggleAI}
             className={`button ${aiEnabled ? 'button-ai-on' : 'button-ai-off'}`}
+            aria-label={`AI opponent ${aiEnabled ? 'enabled' : 'disabled'}. Click to ${aiEnabled ? 'disable' : 'enable'} AI`}
+            aria-pressed={aiEnabled}
           >
             {aiEnabled ? 'AI: ON' : 'AI: OFF'}
           </button>
@@ -761,27 +800,30 @@ const PongGame = () => {
         <div className={`button-container ${window.innerWidth < 600 ? 'button-container-mobile' : ''}`}>
           
           {/* Main Game Control */}
-          <button 
+          <button
             onClick={() => setGameStarted(!gameStarted)}
-            className={`button start-pause-button ${window.innerWidth < 600 ? 'start-pause-button-mobile' : ''} ${gameStarted ? 'pause-button' : 'start-button'}`}>
-            {gameStarted ? '⏸ PAUSE' : '▶ START GAME'}
+            className={`button start-pause-button ${window.innerWidth < 600 ? 'start-pause-button-mobile' : ''} ${gameStarted ? 'pause-button' : 'start-button'}`}
+            aria-label={gameStarted ? 'Pause game (Spacebar)' : 'Start game (Spacebar)'}
+            aria-describedby="game-status"
+            autoFocus={!gameStarted}
+          >
+            {gameStarted ? 'PAUSE' : 'START GAME'}
           </button>
+          <div id="game-status" className="sr-only">
+            Game is currently {gameStarted ? 'running' : 'stopped'}.
+            {gameStateRef.current?.gameWinner && `Game over. ${gameStateRef.current.gameWinner === 'left' ? 'Player' : 'Opponent'} wins.`}
+          </div>
           
           {/* Sound Control */}
-          <button 
+          <button
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className={`button sound-button ${window.innerWidth < 600 ? 'sound-button-mobile' : ''} ${soundEnabled ? 'sound-on-button' : 'sound-off-button'}`}>
-            {soundEnabled ? '🔊 SOUND' : '🔇 MUTED'}
+            className={`button sound-button ${window.innerWidth < 600 ? 'sound-button-mobile' : ''} ${soundEnabled ? 'sound-on-button' : 'sound-off-button'}`}
+            aria-label={`Sound effects ${soundEnabled ? 'enabled' : 'disabled'}. Click to ${soundEnabled ? 'disable' : 'enable'} sound`}
+            aria-pressed={soundEnabled}
+          >
+            {soundEnabled ? 'SOUND ON' : 'SOUND OFF'}
           </button>
           
-          {/* Debug Toggle for mobile/smaller screens */}
-          {window.innerWidth < 1200 && (
-            <button 
-              onClick={() => setShowDebug(!showDebug)}
-              className={`button debug-toggle-button ${window.innerWidth < 600 ? 'debug-toggle-button-mobile' : ''}`}>
-              {showDebug ? '📊 HIDE DEBUG' : '📊 SHOW DEBUG'}
-            </button>
-          )}
           
           {/* Leaderboard View Button */}
           <button 
@@ -791,74 +833,40 @@ const PongGame = () => {
             }}
             className={`button leaderboard-button ${window.innerWidth < 600 ? 'leaderboard-button-mobile' : ''}`}>
             <div className="leaderboard-icon">
-              ♕
+              L
             </div>
             LEADERBOARD
           </button>
           
         </div>
       </div>
-      </div>
-      
-      {/* Debug Panel */}
-      {showDebug && (
-        <div className="debug-panel">
-          <div className="debug-panel-header">
-            <span className="debug-panel-title">DEBUG PANEL</span>
-            <button 
-              onClick={() => setShowDebug(false)}
-              className="debug-panel-close-button">
-              ✕
-            </button>
+
+      {/* Progress System - Healthy Engagement */}
+      <div className="progress-container">
+        <div className="progress-bar-wrapper">
+          <div className="progress-bar-bg">
+            <div
+              className="progress-bar-fill"
+              style={{
+                width: `${(gameStateRef.current?.progressBar?.currentXP || 0) / (gameStateRef.current?.progressBar?.xpToNext || 100) * 100}%`
+              }}
+            />
           </div>
-          
-          <div className="debug-panel-stats">
-            <div>FPS: <span className={debugStats.fps >= 55 ? 'debug-stat-good' : 'debug-stat-bad'}>
-              {debugStats.fps}
-            </span></div>
-            <div>Update: <span className={debugStats.updateTime > 16 ? 'debug-stat-bad' : 'debug-stat-good'}>
-              {debugStats.updateTime.toFixed(2)}ms
-            </span></div>
-            <div>Render: <span className={debugStats.renderTime > 10 ? 'debug-stat-bad' : 'debug-stat-good'}>
-              {debugStats.renderTime.toFixed(2)}ms
-            </span></div>
-            <div>Particles: <span className={debugStats.particles > 50 ? 'debug-stat-warn' : ''}>
-              {debugStats.particles}
-            </span></div>
-            <div>PowerUps: {debugStats.powerUps}</div>
-            <div>Sound: {soundEnabled ? 'ON' : 'OFF'}</div>
-            <div>AI: {aiEnabled ? aiDifficulty.toUpperCase() : 'OFF'}</div>
-            
-            <div className="v8-status">
-              <div className="v8-status-title">
-                V8 OPTIMIZATION STATUS (Score: {debugStats.v8Status?.optimizationScore || 100})
-              </div>
-              <div className={`v8-status-item ${debugStats.v8Status?.forLoopsUsed > 0 ? 'v8-status-item-good' : 'v8-status-item-bad'}`}>
-                {debugStats.v8Status?.forLoopsUsed > 0 ? '✓' : '○'} for loops active: {debugStats.v8Status?.forLoopsUsed || 0}
-              </div>
-              <div className={`v8-status-item ${debugStats.v8Status?.compactArraysUsed > 0 ? 'v8-status-item-good' : 'v8-status-item-bad'}`}>
-                {debugStats.v8Status?.compactArraysUsed > 0 ? '✓' : '○'} array compaction: {debugStats.v8Status?.compactArraysUsed || 0}
-              </div>
-              <div className="v8-status-item v8-status-item-good">
-                ✓ Math.pow→multiplication (static)
-              </div>
-              
-              {debugStats.v8Warnings.length > 0 && (
-                <div className="v8-warnings">
-                  <div className="v8-warnings-title">
-                    WARNINGS:
-                  </div>
-                  {debugStats.v8Warnings.map((warning, index) => (
-                    <div key={index} className="v8-warning">
-                      ⚠ {warning}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+          <div className="progress-text">
+            Level {gameStateRef.current?.progressBar?.level || 1} • {gameStateRef.current?.progressBar?.currentXP || 0}/{gameStateRef.current?.progressBar?.xpToNext || 100} XP
           </div>
         </div>
-      )}
+
+        {/* Achievement indicators */}
+        <div className="achievements-row">
+          {gameStateRef.current?.achievements?.rally10 && <span className="achievement-badge">Rally Master</span>}
+          {gameStateRef.current?.achievements?.speedDemon && <span className="achievement-badge">Speed Demon</span>}
+          {gameStateRef.current?.achievements?.firstWin && <span className="achievement-badge">First Victory</span>}
+          {gameStateRef.current?.achievements?.quickReflexes && <span className="achievement-badge">Quick Reflexes</span>}
+        </div>
+      </div>
+      </div>
+
       
       {/* Leaderboard Modal */}
       {showLeaderboard && (
@@ -926,7 +934,7 @@ const PongGame = () => {
               <div className="leaderboard-view">
                 <div className="leaderboard-view-title">
                   <div className="leaderboard-icon">
-                    ♕
+                    L
                   </div>
                   LEADERBOARD
                 </div>
@@ -959,9 +967,9 @@ const PongGame = () => {
                   {leaderboardScores.map((score, index) => {
                     const getRankBadge = (rank) => {
                       const badges = {
-                        0: { bg: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff', icon: '♕' }, // Gold crown
-                        1: { bg: 'linear-gradient(135deg, #c0c0c0, #a0a0a0)', color: '#fff', icon: '♖' }, // Silver castle
-                        2: { bg: 'linear-gradient(135deg, #cd7f32, #b86f28)', color: '#fff', icon: '♗' }  // Bronze bishop
+                        0: { bg: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff', icon: '1' }, // Gold first
+                        1: { bg: 'linear-gradient(135deg, #c0c0c0, #a0a0a0)', color: '#fff', icon: '2' }, // Silver second
+                        2: { bg: 'linear-gradient(135deg, #cd7f32, #b86f28)', color: '#fff', icon: '3' }  // Bronze third
                       }
                       return badges[rank] || { bg: 'linear-gradient(135deg, #4b5563, #374151)', color: '#e5e7eb', icon: (rank + 1).toString() }
                     }
