@@ -20,23 +20,46 @@ const PongGame = () => {
     frameCount: 0,
   });
   const audioContextRef = useRef(null);
+  const getInitialCanvasSize = () => ({
+    width: Math.min(1400, window.innerWidth - 80),
+    height: Math.min(700, window.innerHeight - 300),
+  });
+
+  const initializeGamePositions = useCallback(() => {
+    const gameState = gameStateRef.current;
+    const canvasSize = gameState.canvas;
+
+    // Center ball
+    gameState.ball.x = canvasSize.width / 2;
+    gameState.ball.y = canvasSize.height / 2;
+
+    // Position paddles
+    gameState.paddles.left.y = (canvasSize.height - gameState.paddles.left.height) / 2;
+    gameState.paddles.right.x = canvasSize.width - 40 - gameState.paddles.right.width;
+    gameState.paddles.right.y = (canvasSize.height - gameState.paddles.right.height) / 2;
+
+    // Set AI target
+    gameState.ai.targetY = canvasSize.height / 2;
+
+    // Update prev positions
+    gameState.paddles.left.prevY = gameState.paddles.left.y;
+    gameState.paddles.right.prevY = gameState.paddles.right.y;
+  }, [gameStateRef]);
+
   const gameStateRef = useRef({
     ball: {
-      x: 800, // Center X
-      y: 400, // Center Y
+      x: 0, // Will be set dynamically
+      y: 0, // Will be set dynamically
       dx: 4, // Velocity X (pixels per frame)
       dy: 3, // Velocity Y
       radius: 8,
       trail: [], // Particle trail for visual effects
     },
     paddles: {
-      left: { x: 40, y: 360, width: 12, height: 80, speed: 4.5, prevY: 360, velocity: 0 },
-      right: { x: 1548, y: 360, width: 12, height: 80, speed: 4.5, prevY: 360, velocity: 0 },
+      left: { x: 40, y: 0, width: 12, height: 80, speed: 4.5, prevY: 0, velocity: 0 },
+      right: { x: 0, y: 0, width: 12, height: 80, speed: 4.5, prevY: 0, velocity: 0 },
     },
-    canvas: {
-      width: Math.min(1600, window.innerWidth - 40),
-      height: Math.min(800, window.innerHeight * 0.8),
-    },
+    canvas: getInitialCanvasSize(),
     keys: {}, // Track which keys are currently pressed
     touch: {
       leftPaddle: { active: false, startY: 0, currentY: 0 },
@@ -47,7 +70,7 @@ const PongGame = () => {
     ai: {
       enabled: true, // AI opponent on/off
       difficulty: 'medium', // 'easy', 'medium', 'hard'
-      targetY: 400, // Where AI wants to move paddle
+      targetY: 0, // Will be set dynamically
       reactionDelay: 0, // Frames to wait before reacting
       lastReactionTime: 0, // Track when AI last "saw" ball
     },
@@ -586,6 +609,9 @@ const PongGame = () => {
     canvas.width = gameStateRef.current.canvas.width
     canvas.height = gameStateRef.current.canvas.height
 
+    // Initialize game positions based on canvas size
+    initializeGamePositions()
+
     // Keyboard event handlers
     const handleKeyDown = (e) => {
       gameStateRef.current.keys[e.key] = true
@@ -657,6 +683,26 @@ const PongGame = () => {
     canvas.addEventListener('touchmove', handleTouchMove, { passive: false })
     canvas.addEventListener('touchend', handleTouchEnd, { passive: false })
 
+    // Handle window resize
+    const handleResize = () => {
+      const newCanvasSize = getInitialCanvasSize();
+      const gameState = gameStateRef.current;
+
+      // Update canvas size
+      gameState.canvas.width = newCanvasSize.width;
+      gameState.canvas.height = newCanvasSize.height;
+      canvas.width = newCanvasSize.width;
+      canvas.height = newCanvasSize.height;
+
+      // Reinitialize positions
+      initializeGamePositions();
+
+      // Redraw
+      drawGame();
+    };
+
+    window.addEventListener('resize', handleResize);
+
     // Draw initial state
     drawGame()
 
@@ -664,11 +710,12 @@ const PongGame = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('resize', handleResize)
       canvas.removeEventListener('touchstart', handleTouchStart)
       canvas.removeEventListener('touchmove', handleTouchMove)
       canvas.removeEventListener('touchend', handleTouchEnd)
     }
-  }, [drawGame])
+  }, [drawGame, initializeGamePositions])
 
   // Professional game loop with performance monitoring and memory optimization
   const gameLoop = useCallback(() => {
