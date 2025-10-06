@@ -1,0 +1,49 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting - Professional strict mode */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+
+    /* Path aliases for clean imports */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@engine/*": ["./src/engine/*"],
+      "@rendering/*": ["./src/rendering/*"],
+      "@audio/*": ["./src/audio/*"],
+      "@ai/*": ["./src/ai/*"],
+      "@modes/*": ["./src/modes/*"],
+      "@ui/*": ["./src/ui/*"],
+      "@powerups/*": ["./src/powerups/*"],
+      "@hooks/*": ["./src/hooks/*"],
+      "@utils/*": ["./src/utils/*"]
+    },
+
+    /* Type checking for tests */
+    "types": ["vitest/globals", "@testing-library/jest-dom"]
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}
