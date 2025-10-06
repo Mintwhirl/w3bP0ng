@@ -3,7 +3,7 @@
  * Testing strategy: Pure functions = easy to test
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   resetBall,
   updateBallPosition,

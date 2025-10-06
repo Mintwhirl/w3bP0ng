@@ -4,7 +4,7 @@
  * Note: Visual rendering is tested manually/visually
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { GameRenderer } from '../GameRenderer';
 import { DEFAULT_THEME, ARCTIC_GLASS_THEME } from '../types';
 import type { RenderState } from '../types';

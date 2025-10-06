@@ -68,7 +68,7 @@ export function spawnPowerUp(
 ): PowerUp {
   // Pick random power-up type
   const randomConfig =
-    POWER_UP_TYPES[Math.floor(Math.random() * POWER_UP_TYPES.length)];
+    POWER_UP_TYPES[Math.floor(Math.random() * POWER_UP_TYPES.length)]!;
 
   // Random position (avoiding edges)
   const marginX = 150;

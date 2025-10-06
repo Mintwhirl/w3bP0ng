@@ -8,7 +8,7 @@
  * - Type-safe with TypeScript
  */
 
-import type { Ball, Bounds, PhysicsConfig } from './types';
+import type { Ball, PhysicsConfig } from './types';
 import { DEFAULT_PHYSICS_CONFIG } from './types';
 
 /**
