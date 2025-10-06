@@ -32,7 +32,7 @@ export function getAIConfig(difficulty: AIDifficulty): AIConfig {
     case 'easy':
       return {
         speed: 5.5,
-        reactionTime: 12, // ~200ms delay
+        reactionTime: 20, // ~333ms delay - slower reaction
         accuracy: 0.8, // 20% inaccurate
         predictionEnabled: false, // Only tracks current position
       };
@@ -40,7 +40,7 @@ export function getAIConfig(difficulty: AIDifficulty): AIConfig {
     case 'medium':
       return {
         speed: 6.5,
-        reactionTime: 6, // ~100ms delay
+        reactionTime: 12, // ~200ms delay - smoother
         accuracy: 0.9, // 10% inaccurate
         predictionEnabled: true, // Uses prediction
       };
@@ -48,7 +48,7 @@ export function getAIConfig(difficulty: AIDifficulty): AIConfig {
     case 'hard':
       return {
         speed: 7.5,
-        reactionTime: 2, // ~33ms delay (very fast)
+        reactionTime: 8, // ~133ms delay - less jittery
         accuracy: 0.98, // 2% inaccurate (nearly perfect)
         predictionEnabled: true,
       };
@@ -125,8 +125,9 @@ export function updateAIPaddle(
   const paddleCenter = paddle.y + paddle.height / 2;
   const difference = targetY - paddleCenter;
 
-  // Dead zone - don't move if close enough (prevents jitter)
-  if (Math.abs(difference) < 2) {
+  // Increased dead zone - don't move if close enough (prevents jitter)
+  // This stops the AI from making micro-adjustments
+  if (Math.abs(difference) < 10) {
     return paddle.y;
   }
 

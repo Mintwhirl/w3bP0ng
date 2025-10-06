@@ -30,7 +30,10 @@
       "Bash(npm run type-check:*)",
       "Bash(curl:*)",
       "Bash(npm test:*)",
-      "Bash(npm run test:ui:*)"
+      "Bash(npm run test:ui:*)",
+      "Bash(npx gh-pages:*)",
+      "Bash(del \"src\\components\\PongGame.jsx\")",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []

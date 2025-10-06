@@ -22,7 +22,7 @@ describe('AIController', () => {
       const config = getAIConfig('easy');
 
       expect(config.speed).toBe(5.5);
-      expect(config.reactionTime).toBe(12);
+      expect(config.reactionTime).toBe(20);
       expect(config.accuracy).toBe(0.8);
       expect(config.predictionEnabled).toBe(false);
     });
@@ -31,7 +31,7 @@ describe('AIController', () => {
       const config = getAIConfig('medium');
 
       expect(config.speed).toBe(6.5);
-      expect(config.reactionTime).toBe(6);
+      expect(config.reactionTime).toBe(12);
       expect(config.accuracy).toBe(0.9);
       expect(config.predictionEnabled).toBe(true);
     });
@@ -40,7 +40,7 @@ describe('AIController', () => {
       const config = getAIConfig('hard');
 
       expect(config.speed).toBe(7.5);
-      expect(config.reactionTime).toBe(2);
+      expect(config.reactionTime).toBe(8);
       expect(config.accuracy).toBe(0.98);
       expect(config.predictionEnabled).toBe(true);
     });
@@ -49,7 +49,7 @@ describe('AIController', () => {
       const config = getAIConfig('invalid' as any);
 
       expect(config.speed).toBe(6.5);
-      expect(config.reactionTime).toBe(6);
+      expect(config.reactionTime).toBe(12);
     });
   });
 
@@ -424,15 +424,15 @@ describe('AIController', () => {
     });
 
     it('should have different thresholds for different difficulties', () => {
-      const currentTime = 80;
+      const currentTime = 200; // Changed from 80 to work with new reaction times
       const lastReactionTime = 0;
 
       const easyShould = shouldReact(currentTime, lastReactionTime, getAIConfig('easy'));
       const hardShould = shouldReact(currentTime, lastReactionTime, getAIConfig('hard'));
 
-      // Hard AI reacts faster, so should be true
+      // Hard AI reacts faster (8 frames = ~133ms), so should be true at 200ms
       expect(hardShould).toBe(true);
-      // Easy AI is slower, so should be false
+      // Easy AI is slower (20 frames = ~333ms), so should be false at 200ms
       expect(easyShould).toBe(false);
     });
   });
