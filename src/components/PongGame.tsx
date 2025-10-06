@@ -7,6 +7,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { GameRenderer } from '../rendering/GameRenderer';
 import { AudioManager } from '../audio/AudioManager';
+import { useTheme } from '../hooks/useTheme';
 import {
   computeAIMove,
 } from '../ai/AIController';
@@ -114,6 +115,9 @@ const PongGame = () => {
   const [playerName, setPlayerName] = useState('');
   const [leaderboardScores, setLeaderboardScores] = useState<any[]>([]);
   const animationFrameRef = useRef<number | null>(null);
+
+  // Get current theme (auto-switches based on game mode)
+  const theme = useTheme();
 
   // Module instances
   const rendererRef = useRef<GameRenderer | null>(null);
@@ -1025,6 +1029,13 @@ const PongGame = () => {
     gameStateRef.current.ai.difficulty = aiDifficulty;
     audioManagerRef.current?.setEnabled(soundEnabled);
   }, [aiEnabled, aiDifficulty, soundEnabled]);
+
+  // Update renderer theme when theme changes
+  useEffect(() => {
+    if (rendererRef.current && theme) {
+      rendererRef.current.setTheme(theme);
+    }
+  }, [theme]);
 
   return (
     <div className={`pong-game-container ${window.innerWidth < 1000 ? 'pong-game-container-mobile' : ''}`}>
