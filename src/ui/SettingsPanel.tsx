@@ -61,6 +61,7 @@ export default function SettingsPanel() {
             <div className="theme-selector">
               {themeOptions.map((themeId) => {
                 const theme = THEMES[themeId];
+                if (!theme) return null;
                 const isActive = currentTheme === themeId;
 
                 return (

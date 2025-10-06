@@ -264,7 +264,6 @@ describe('SettingsPanel', () => {
 
   describe('State Persistence', () => {
     it('should maintain theme selection when reopening panel', async () => {
-      const user = userEvent.setup();
       useGameStore.setState({ settingsPanelOpen: true, currentTheme: 'arctic-glass' });
 
       const { unmount } = render(<SettingsPanel />);

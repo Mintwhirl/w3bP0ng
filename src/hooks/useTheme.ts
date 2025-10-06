@@ -18,16 +18,19 @@ export function useTheme(): Theme {
 
   // Determine which theme to use
   // Priority: Manual selection > Mode-specific > Default
-  const theme = useMemo(() => {
+  const theme = useMemo((): Theme => {
+    const defaultTheme = THEMES['synthwave-sunset'];
+    if (!defaultTheme) throw new Error('Default theme not found');
+
     // If user manually selected a theme in settings, use that
     // Only override with mode-specific if we're in menu or if theme is default
     if (currentTheme && currentTheme !== 'synthwave-sunset' && currentMode === 'menu') {
-      return THEMES[currentTheme] || THEMES['synthwave-sunset'];
+      return THEMES[currentTheme] || defaultTheme;
     }
 
     // Use mode-specific theme
     const modeThemeId = MODE_THEMES[currentMode];
-    return THEMES[modeThemeId] || THEMES['synthwave-sunset'];
+    return modeThemeId ? (THEMES[modeThemeId] ?? defaultTheme) : defaultTheme;
   }, [currentMode, currentTheme]);
 
   // Apply theme as CSS variables whenever theme changes

@@ -2,11 +2,11 @@
  * Tests for useTheme hook
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useTheme, useCurrentThemeId } from '../useTheme';
 import { useGameStore } from '../useGameStore';
-import { THEMES, MODE_THEMES } from '../../rendering/types';
+import { THEMES } from '../../rendering/types';
 
 describe('useTheme hook', () => {
   beforeEach(() => {

@@ -33,8 +33,8 @@ describe('Theme Definitions', () => {
 
     it('should have gradient with 3 stops', () => {
       expect(DEFAULT_THEME.background.gradient).toHaveLength(3);
-      expect(DEFAULT_THEME.background.gradient[0].position).toBe(0);
-      expect(DEFAULT_THEME.background.gradient[2].position).toBe(1);
+      expect(DEFAULT_THEME.background.gradient[0]?.position).toBe(0);
+      expect(DEFAULT_THEME.background.gradient[2]?.position).toBe(1);
     });
 
     it('should have distinct paddle colors', () => {
