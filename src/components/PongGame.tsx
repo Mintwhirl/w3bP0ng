@@ -759,6 +759,42 @@ const PongGame = () => {
       console.error('Failed to initialize modules:', error);
     }
 
+    // Draw initial state
+    if (rendererRef.current) {
+      const gameState = gameStateRef.current;
+      const renderState: RenderState = {
+        ball: {
+          x: gameState.ball.x,
+          y: gameState.ball.y,
+          radius: gameState.ball.radius,
+          trail: [],
+        },
+        paddles: {
+          left: {
+            x: gameState.paddles.left.x,
+            y: gameState.paddles.left.y,
+            width: gameState.paddles.left.width,
+            height: gameState.paddles.left.height,
+          },
+          right: {
+            x: gameState.paddles.right.x,
+            y: gameState.paddles.right.y,
+            width: gameState.paddles.right.width,
+            height: gameState.paddles.right.height,
+          },
+        },
+        score: gameState.score,
+        gameWinner: null,
+        screenShake: { x: 0, y: 0 },
+        powerUps: [],
+        activePowerUps: {
+          bigPaddle: { active: false, player: null },
+          multiBall: { active: false, extraBalls: [] },
+        },
+      };
+      rendererRef.current.render(renderState);
+    }
+
     // Keyboard event handlers
     const handleKeyDown = (e: KeyboardEvent) => {
       gameStateRef.current.keys[e.key] = true;
@@ -857,6 +893,63 @@ const PongGame = () => {
     };
   }, [initializeGamePositions]);
 
+  // Render function - extracted so it can be called separately
+  const renderGame = useCallback(() => {
+    if (!rendererRef.current) return;
+
+    const gameState = gameStateRef.current;
+
+    // Convert power-ups to render format
+    const renderPowerUps = gameState.powerUps.map((p) => ({
+      x: p.x,
+      y: p.y,
+      type: p.type,
+      rotation: p.rotation,
+      color: p.color,
+      symbol: p.symbol,
+    }));
+
+    const renderState: RenderState = {
+      ball: {
+        x: gameState.ball.x,
+        y: gameState.ball.y,
+        radius: gameState.ball.radius,
+        trail: gameState.ball.trail,
+      },
+      paddles: {
+        left: {
+          x: gameState.paddles.left.x,
+          y: gameState.paddles.left.y,
+          width: gameState.paddles.left.width,
+          height: gameState.paddles.left.height,
+        },
+        right: {
+          x: gameState.paddles.right.x,
+          y: gameState.paddles.right.y,
+          width: gameState.paddles.right.width,
+          height: gameState.paddles.right.height,
+        },
+      },
+      score: gameState.score,
+      gameWinner: gameState.gameWinner,
+      screenShake: gameState.screenShake,
+      powerUps: renderPowerUps,
+      activePowerUps: {
+        bigPaddle: gameState.activePowerUps.bigPaddle,
+        multiBall: {
+          active: gameState.activePowerUps.multiBall.active,
+          extraBalls: gameState.activePowerUps.multiBall.extraBalls.map((b) => ({
+            x: b.x,
+            y: b.y,
+            radius: b.radius,
+          })),
+        },
+      },
+    };
+
+    rendererRef.current.render(renderState);
+  }, []);
+
   // Game loop
   const gameLoop = useCallback(() => {
     try {
@@ -874,60 +967,8 @@ const PongGame = () => {
       // Update game state
       updateGame();
 
-      // Render using GameRenderer
-      if (rendererRef.current) {
-        const gameState = gameStateRef.current;
-
-        // Convert power-ups to render format
-        const renderPowerUps = gameState.powerUps.map((p) => ({
-          x: p.x,
-          y: p.y,
-          type: p.type,
-          rotation: p.rotation,
-          color: p.color,
-          symbol: p.symbol,
-        }));
-
-        const renderState: RenderState = {
-          ball: {
-            x: gameState.ball.x,
-            y: gameState.ball.y,
-            radius: gameState.ball.radius,
-            trail: gameState.ball.trail,
-          },
-          paddles: {
-            left: {
-              x: gameState.paddles.left.x,
-              y: gameState.paddles.left.y,
-              width: gameState.paddles.left.width,
-              height: gameState.paddles.left.height,
-            },
-            right: {
-              x: gameState.paddles.right.x,
-              y: gameState.paddles.right.y,
-              width: gameState.paddles.right.width,
-              height: gameState.paddles.right.height,
-            },
-          },
-          score: gameState.score,
-          gameWinner: gameState.gameWinner,
-          screenShake: gameState.screenShake,
-          powerUps: renderPowerUps,
-          activePowerUps: {
-            bigPaddle: gameState.activePowerUps.bigPaddle,
-            multiBall: {
-              active: gameState.activePowerUps.multiBall.active,
-              extraBalls: gameState.activePowerUps.multiBall.extraBalls.map((b) => ({
-                x: b.x,
-                y: b.y,
-                radius: b.radius,
-              })),
-            },
-          },
-        };
-
-        rendererRef.current.render(renderState);
-      }
+      // Render
+      renderGame();
 
       // Memory management
       metrics.frameCount++;
@@ -945,7 +986,7 @@ const PongGame = () => {
       console.error('Game loop error:', error);
       setGameStarted(false);
     }
-  }, [gameStarted, updateGame]);
+  }, [gameStarted, updateGame, renderGame]);
 
   // Start/stop game loop
   useEffect(() => {
