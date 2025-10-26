@@ -13,7 +13,7 @@ import { checkAchievements } from '../core/achievements';
 import { incrementPlayTime } from '../utils/saveManager';
 import '../styles/glassmorphism.css';
 
-export default function TitleScreen() {
+export default function TitleScreen({ onStart }: { onStart?: () => void }) {
   const { setMode } = useGameStore();
   const audioReady = useAudioInit();
   const [showButton, setShowButton] = useState(false);
@@ -65,8 +65,12 @@ export default function TitleScreen() {
 
   const handleStart = useCallback(() => {
     setFadeOut(true);
-    setMode('menu');
-  }, [setMode]);
+    if (onStart) {
+      onStart();
+    } else {
+      setMode('menu');
+    }
+  }, [setMode, onStart]);
 
   const handleKeyPress = useCallback((event: KeyboardEvent) => {
     // Any key press starts the game

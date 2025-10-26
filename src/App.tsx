@@ -36,6 +36,7 @@ const MODE_COMPONENTS: Record<GameMode, React.ComponentType> = {
 
 function App() {
   const currentMode = useGameStore((state) => state.currentMode);
+  const setMode = useGameStore((state) => state.setMode);
   const ModeComponent = MODE_COMPONENTS[currentMode];
 
   // Initialize systems on mount
@@ -80,7 +81,11 @@ function App() {
   return (
     <div className={`App cosmic-bg ${isGameMode ? 'full-bleed' : ''}`}>
       <ModeTransition mode={currentMode}>
-        <ModeComponent />
+        {currentMode === 'title' ? (
+          <TitleScreen onStart={() => setMode('menu')} />
+        ) : (
+          <ModeComponent />
+        )}
       </ModeTransition>
       <SettingsPanel />
     </div>
