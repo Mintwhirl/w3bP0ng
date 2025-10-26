@@ -33,7 +33,18 @@
       "Bash(npm run test:ui:*)",
       "Bash(npx gh-pages:*)",
       "Bash(del \"src\\components\\PongGame.jsx\")",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(if not exist docsarchive mkdir docsarchive)",
+      "Bash(copy PHASE_0_COMPLETE.md docsarchive )",
+      "Bash(copy PHASE_1_PROGRESS.md docsarchive )",
+      "Bash(copy PHASE_1_COMPLETE.md docsarchive )",
+      "Bash(del:*)",
+      "Bash(npx vercel build:*)",
+      "Bash(sessions/bin/sessions.bat kickstart:*)",
+      "Bash(sessions config phrases list implementation_mode)",
+      "Bash(sessions/bin/sessions.bat config:*)",
+      "Bash(cp:*)",
+      "Bash(sessions/bin/sessions.bat:*)"
     ],
     "deny": [],
     "ask": []
