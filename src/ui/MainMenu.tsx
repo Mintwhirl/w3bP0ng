@@ -3,20 +3,27 @@
  * Landing screen with mode selection and settings
  */
 
+import { useState, useCallback } from 'react';
 import { useGameStore, GAME_MODES, type GameMode } from '../hooks/useGameStore';
 import { LeftPaddle, RightPaddle } from './DecorativePaddles';
 import { EnergyBall } from './EnergyBall';
 import { ParticleBackground } from './ParticleBackground';
+import AboutCredits from './AboutCredits';
 import './MainMenu.css';
 
 export default function MainMenu() {
   const { setMode, toggleSettingsPanel } = useGameStore();
+  const [showAbout, setShowAbout] = useState(false);
 
-  const handleModeSelect = (modeId: GameMode, available: boolean) => {
+  const handleModeSelect = useCallback((modeId: GameMode, available: boolean) => {
     if (available) {
       setMode(modeId);
     }
-  };
+  }, [setMode]);
+
+  const toggleAbout = useCallback(() => {
+    setShowAbout(prev => !prev);
+  }, []);
 
   return (
     <div className="main-menu">
@@ -85,6 +92,14 @@ export default function MainMenu() {
           >
             View Source on GitHub
           </a>
+          <br />
+          <button
+            onClick={toggleAbout}
+            className="menu-link about-button"
+            type="button"
+          >
+            📋 About & Credits
+          </button>
         </p>
       </footer>
     </div>

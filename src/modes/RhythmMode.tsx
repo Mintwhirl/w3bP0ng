@@ -60,24 +60,56 @@ export function RhythmMode() {
   // INITIALIZE GAME
   // ═══════════════════════════════════════════════════════════
   const initializeGame = useCallback(() => {
-    if (!canvasRef.current) return;
+    try {
+      if (!canvasRef.current) {
+        console.error('[RhythmMode] Canvas reference not available');
+        return;
+      }
 
-    const canvas = canvasRef.current;
-    const track = createDefaultTrack(difficulty);
+      const canvas = canvasRef.current;
 
-    // Create beat sync
-    beatSyncRef.current = new BeatSync(track.bpm, track.duration);
+      // Validate canvas dimensions
+      if (!canvas.width || !canvas.height || canvas.width <= 0 || canvas.height <= 0) {
+        console.error('[RhythmMode] Invalid canvas dimensions:', { width: canvas.width, height: canvas.height });
+        return;
+      }
 
-    // Create game state
-    gameStateRef.current = createInitialRhythmState(
-      canvas.width,
-      canvas.height,
-      track
-    );
+      const track = createDefaultTrack(difficulty);
 
-    setDisplayScore(0);
-    setDisplayCombo(0);
-    lastFrameTime.current = performance.now();
+      // Validate track data
+      if (!track || track.bpm <= 0 || track.duration <= 0) {
+        console.error('[RhythmMode] Invalid track data:', track);
+        return;
+      }
+
+      // Create beat sync
+      beatSyncRef.current = new BeatSync(track.bpm, track.duration);
+
+      // Create game state
+      gameStateRef.current = createInitialRhythmState(
+        canvas.width,
+        canvas.height,
+        track
+      );
+
+      // Validate initial game state
+      if (!gameStateRef.current) {
+        throw new Error('[RhythmMode] Failed to create initial game state');
+      }
+
+      setDisplayScore(0);
+      setDisplayCombo(0);
+      lastFrameTime.current = performance.now();
+
+      console.log('[RhythmMode] Game initialized successfully', {
+        difficulty,
+        canvasSize: { width: canvas.width, height: canvas.height },
+        trackInfo: { bpm: track.bpm, duration: track.duration }
+      });
+    } catch (error) {
+      console.error('[RhythmMode] Failed to initialize game:', error);
+      setGamePhase('menu');
+    }
   }, [difficulty]);
 
   // ═══════════════════════════════════════════════════════════
@@ -116,74 +148,137 @@ export function RhythmMode() {
   // GAME LOOP
   // ═══════════════════════════════════════════════════════════
   const gameLoop = useCallback((currentTime: number) => {
-    if (!gameStateRef.current || !beatSyncRef.current || !canvasRef.current) return;
+    try {
+      if (!gameStateRef.current || !beatSyncRef.current || !canvasRef.current) {
+        console.warn('[RhythmMode] Game loop missing references');
+        return;
+      }
 
-    const state = gameStateRef.current;
-    const beatSync = beatSyncRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+      const state = gameStateRef.current;
+      const beatSync = beatSyncRef.current;
+      const canvas = canvasRef.current;
 
-    const deltaTime = Math.min((currentTime - lastFrameTime.current) / 16.67, 2);
-    lastFrameTime.current = currentTime;
+      // Validate canvas context
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.error('[RhythmMode] Failed to get 2D context');
+        return;
+      }
 
-    // Update elapsed time (ms)
-    state.elapsedTime += (deltaTime / 60) * 1000;
+      // Validate and calculate delta time
+      if (typeof currentTime !== 'number' || currentTime <= 0 || !lastFrameTime.current) {
+        console.warn('[RhythmMode] Invalid currentTime or missing lastFrameTime');
+        lastFrameTime.current = currentTime || performance.now();
+        return;
+      }
 
-    // Get beat progress
-    const beatProgress = beatSync.getBeatProgress(state.elapsedTime);
-    const currentBeat = beatSync.getCurrentBeat(state.elapsedTime);
+      const deltaTime = Math.min((currentTime - lastFrameTime.current) / 16.67, 2);
+      if (deltaTime < 0 || deltaTime > 10) {
+        console.warn('[RhythmMode] Abnormal deltaTime:', deltaTime);
+        lastFrameTime.current = currentTime;
+        return;
+      }
+      lastFrameTime.current = currentTime;
 
-    // Update paddle
-    const upPressed = keysPressed.current.has('w') || keysPressed.current.has('arrowup');
-    const downPressed = keysPressed.current.has('s') || keysPressed.current.has('arrowdown');
-    state.paddle = updatePaddle(state.paddle, upPressed, downPressed, canvas.height, deltaTime);
+      // Update elapsed time (ms)
+      state.elapsedTime += (deltaTime / 60) * 1000;
 
-    // Update ball
-    state.ball = updateBall(state.ball, deltaTime);
-    state.ball = checkWallCollisions(state.ball, canvas.width, canvas.height);
+      // Get beat progress
+      const beatProgress = beatSync.getBeatProgress(state.elapsedTime);
+      const currentBeat = beatSync.getCurrentBeat(state.elapsedTime);
 
-    // Check paddle collision
-    if (checkPaddleCollision(state.ball, state.paddle)) {
-      // Evaluate timing
-      const hitAccuracy = beatSync.checkHitTiming(state.elapsedTime, currentBeat);
+      // Update paddle with validation
+      const upPressed = keysPressed.current.has('w') || keysPressed.current.has('arrowup');
+      const downPressed = keysPressed.current.has('s') || keysPressed.current.has('arrowdown');
 
-      // Process hit
-      gameStateRef.current = processHit(state, hitAccuracy);
-      const updatedState = gameStateRef.current;
+      try {
+        state.paddle = updatePaddle(state.paddle, upPressed, downPressed, canvas.height, deltaTime);
+      } catch (error) {
+        console.error('[RhythmMode] Failed to update paddle:', error);
+        return;
+      }
 
-      // Apply bounce
-      updatedState.ball = applyPaddleBounce(updatedState.ball, updatedState.paddle);
+      // Update ball with validation
+      try {
+        state.ball = updateBall(state.ball, deltaTime);
+        state.ball = checkWallCollisions(state.ball, canvas.width, canvas.height);
+      } catch (error) {
+        console.error('[RhythmMode] Failed to update ball:', error);
+        return;
+      }
 
-      // Update display
-      setDisplayScore(updatedState.score);
-      setDisplayCombo(updatedState.combo);
+      // Check paddle collision
+      try {
+        if (checkPaddleCollision(state.ball, state.paddle)) {
+          // Evaluate timing
+          const hitAccuracy = beatSync.checkHitTiming(state.elapsedTime, currentBeat);
+
+          // Process hit
+          gameStateRef.current = processHit(state, hitAccuracy);
+
+          // Apply bounce
+          const bouncedBall = applyPaddleBounce(gameStateRef.current.ball, gameStateRef.current.paddle);
+          gameStateRef.current.ball = bouncedBall;
+
+          // Update display with validation
+          if (gameStateRef.current && typeof gameStateRef.current.score === 'number') {
+            setDisplayScore(gameStateRef.current.score);
+            setDisplayCombo(gameStateRef.current.combo || 0);
+          }
+        }
+      } catch (error) {
+        console.error('[RhythmMode] Failed to process paddle collision:', error);
+      }
+
+      // Check if ball went off left edge (miss)
+      try {
+        if (state.ball && state.ball.x + state.ball.radius < 0) {
+          state.ball = resetBall(canvas.width, canvas.height);
+          state.combo = 0;
+          state.missedBeats = (state.missedBeats || 0) + 1;
+          setDisplayCombo(0);
+        }
+      } catch (error) {
+        console.error('[RhythmMode] Failed to handle miss:', error);
+      }
+
+      // Check track completion
+      try {
+        if (state.track && typeof state.elapsedTime === 'number' && state.elapsedTime >= state.track.duration * 1000) {
+          console.log('[RhythmMode] Track completed');
+          setGamePhase('complete');
+          return;
+        }
+      } catch (error) {
+        console.error('[RhythmMode] Failed to check track completion:', error);
+      }
+
+      // Render with error handling
+      try {
+        renderRhythmGame(ctx, state, beatProgress);
+      } catch (error) {
+        console.error('[RhythmMode] Failed to render game:', error);
+        // Continue game loop even if rendering fails
+      }
+
+      animationFrameRef.current = requestAnimationFrame(gameLoop);
+    } catch (error) {
+      console.error('[RhythmMode] Critical error in game loop:', error);
+      // Try to recover by resetting game phase
+      setGamePhase('menu');
     }
-
-    // Check if ball went off left edge (miss)
-    if (state.ball.x + state.ball.radius < 0) {
-      state.ball = resetBall(canvas.width, canvas.height);
-      state.combo = 0;
-      state.missedBeats++;
-      setDisplayCombo(0);
-    }
-
-    // Check track completion
-    if (state.elapsedTime >= state.track.duration * 1000) {
-      setGamePhase('complete');
-      return;
-    }
-
-    // Render
-    renderRhythmGame(ctx, state, beatProgress);
-
-    animationFrameRef.current = requestAnimationFrame(gameLoop);
   }, []);
 
   // Start/stop game loop
   useEffect(() => {
     if (gamePhase === 'playing') {
-      initializeGame();
+      // Small delay to ensure state is set before first frame
+      setTimeout(() => {
+        initializeGame();
+        lastFrameTime.current = performance.now();
+        animationFrameRef.current = requestAnimationFrame(gameLoop);
+      }, 0);
+
       lastFrameTime.current = performance.now();
       animationFrameRef.current = requestAnimationFrame(gameLoop);
     } else {

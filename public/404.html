@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="W3BP0NG - Next-generation Pong with liquid glass synthwave aesthetic">
+    <title>404 - Page Not Found | W3BP0NG</title>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', 'Courier New', monospace;
+            background: linear-gradient(135deg, #0b001a 0%, #140033 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .cosmic-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0b001a 0%, #140033 50%, #1a0033 100%);
+            z-index: -2;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .glass-container {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            border-radius: 24px;
+            padding: 3rem 4rem;
+            text-align: center;
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                0 0 64px rgba(168, 85, 247, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            max-width: 600px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .error-code {
+            font-size: 8rem;
+            font-weight: 700;
+            color: #a855f7;
+            text-shadow:
+                0 0 20px rgba(168, 85, 247, 0.8),
+                0 0 40px rgba(168, 85, 247, 0.4);
+            margin-bottom: 1rem;
+            line-height: 1;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 20px rgba(168, 85, 247, 0.8), 0 0 40px rgba(168, 85, 247, 0.4); }
+            to { text-shadow: 0 0 30px rgba(34, 211, 238, 0.8), 0 0 60px rgba(34, 211, 238, 0.4); }
+        }
+
+        .error-message {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #22d3ee;
+            margin-bottom: 2rem;
+            text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+        }
+
+        .error-description {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .glass-button {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(34, 211, 238, 0.4);
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            color: #22d3ee;
+            text-decoration: none;
+            font-family: 'Orbitron', monospace;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-button:hover {
+            background: rgba(34, 211, 238, 0.2);
+            border-color: rgba(34, 211, 238, 0.8);
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(34, 211, 238, 0.3);
+        }
+
+        .glass-button:magenta {
+            border-color: rgba(168, 85, 247, 0.4);
+            color: #a855f7;
+        }
+
+        .glass-button:magenta:hover {
+            background: rgba(168, 85, 247, 0.2);
+            border-color: rgba(168, 85, 247, 0.8);
+            color: #ffffff;
+            box-shadow: 0 8px 24px rgba(168, 85, 247, 0.3);
+        }
+
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.8), transparent);
+            border-radius: 50%;
+            animation: float 6s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0) scale(1);
+                opacity: 0.8;
+            }
+            50% {
+                transform: translateY(-20px) translateX(10px) scale(1.2);
+                opacity: 1;
+            }
+        }
+
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.8), transparent);
+            animation: scan 3s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { top: 0%; opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        @media (max-width: 768px) {
+            .glass-container {
+                margin: 1rem;
+                padding: 2rem;
+            }
+
+            .error-code {
+                font-size: 6rem;
+            }
+
+            .error-message {
+                font-size: 1.2rem;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="cosmic-bg"></div>
+    <div class="stars" id="starfield"></div>
+
+    <div class="glass-container">
+        <div class="particles">
+            <div class="particle" style="top: 10%; left: 15%; animation-delay: 0s;"></div>
+            <div class="particle" style="top: 20%; left: 85%; animation-delay: 1s;"></div>
+            <div class="particle" style="top: 70%; left: 10%; animation-delay: 2s;"></div>
+            <div class="particle" style="top: 80%; left: 90%; animation-delay: 3s;"></div>
+            <div class="particle" style="top: 50%; left: 50%; animation-delay: 4s;"></div>
+        </div>
+
+        <div class="scan-line"></div>
+
+        <div class="error-code">404</div>
+        <div class="error-message">Page Not Found</div>
+        <div class="error-description">
+            The cosmic pathway you're looking for has drifted into the void.<br>
+            Let us guide you back to the game.
+        </div>
+
+        <div class="nav-buttons">
+            <a href="/w3bP0ng/" class="glass-button">Home</a>
+            <a href="/w3bP0ng/menu" class="glass-button magenta">Main Menu</a>
+            <a href="https://github.com/mintwhirl/w3bP0ng" class="glass-button" target="_blank">GitHub</a>
+        </div>
+    </div>
+
+    <script>
+        // Generate starfield
+        function createStarfield() {
+            const starfield = document.getElementById('starfield');
+            const starCount = 100;
+
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.width = Math.random() * 3 + 'px';
+                star.style.height = star.style.width;
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                star.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                starfield.appendChild(star);
+            }
+        }
+
+        // Create dynamic particles
+        function createDynamicParticles() {
+            const container = document.querySelector('.particles');
+            setInterval(() => {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 2 + 's';
+
+                container.appendChild(particle);
+
+                setTimeout(() => particle.remove(), 6000);
+            }, 2000);
+        }
+
+        // Initialize
+        createStarfield();
+        createDynamicParticles();
+    </script>
+</body>
+</html>

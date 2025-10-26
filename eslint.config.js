@@ -9,6 +9,10 @@ export default [
   {
     languageOptions: { globals: globals.browser },
   },
+  {
+    languageOptions: { globals: globals.node },
+    files: ["sessions/**/*"],
+  },
   pluginJs.configs.recommended,
   {
     ...pluginReactConfig,

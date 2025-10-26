@@ -6,7 +6,7 @@
 
 import { W3BP0NG_THEME } from '../../w3bp0ng-theme.config';
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { useGameStore } from '@hooks/useGameStore';
+import { useGameStore } from '../hooks/useGameStore';
 import {
   GlassPanel,
   ScoreDisplay,
@@ -14,9 +14,10 @@ import {
   GlassButton,
   PauseOverlay,
   StatsDisplay,
-} from '@ui/GlassHUD';
+} from '../ui/GlassHUD';
 import { renderPuzzleGame } from './physics-puzzle/PuzzleRenderer';
 import { getLevel } from './physics-puzzle/levels';
+import { listLevels, loadLevel, type CustomLevel } from './level-editor/LevelData';
 import {
   updatePaddlePosition,
   updateBallPosition,
@@ -36,11 +37,12 @@ import {
   createInitialBall,
   createPaddle,
 } from './physics-puzzle/PhysicsPuzzleEngine';
-import { loadPuzzleProgress, savePuzzleProgress } from '@utils/storage';
+import { loadPuzzleProgress, savePuzzleProgress } from '../utils/storage';
 import type { PuzzleGameState } from './physics-puzzle/types';
 import '../styles/glassmorphism.css';
 
 type GamePhase = 'menu' | 'playing' | 'paused' | 'complete';
+type LevelSource = 'builtin' | 'custom';
 
 export function PhysicsPuzzleMode() {
   // ═══════════════════════════════════════════════════════════
@@ -61,14 +63,26 @@ export function PhysicsPuzzleMode() {
   // UI STATE
   // ═══════════════════════════════════════════════════════════
   const [currentLevelId, setCurrentLevelId] = useState(1);
+  const [levelSource, setLevelSource] = useState<LevelSource>('builtin');
+  const [customLevelName, setCustomLevelName] = useState<string | null>(null);
   const [gamePhase, setGamePhase] = useState<GamePhase>('menu');
   const [displayScore, setDisplayScore] = useState(0);
   const [displayTime, setDisplayTime] = useState(0);
   const [displayHits, setDisplayHits] = useState(0);
   const [earnedStars, setEarnedStars] = useState<0 | 1 | 2 | 3>(0);
   const [totalStars, setTotalStars] = useState(0);
+  const [availableCustomLevels, setAvailableCustomLevels] = useState<string[]>([]);
 
-  const currentLevel = getLevel(currentLevelId);
+  // Load current level (builtin or custom)
+  const currentLevel = levelSource === 'custom' && customLevelName
+    ? loadLevel(customLevelName)?.levelData
+    : getLevel(currentLevelId);
+
+  // Load custom levels list
+  useEffect(() => {
+    const customLevels = listLevels().map(level => level.name);
+    setAvailableCustomLevels(customLevels);
+  }, []);
 
   // ═══════════════════════════════════════════════════════════
   // LOAD PROGRESS ON MOUNT
@@ -316,11 +330,44 @@ export function PhysicsPuzzleMode() {
   };
 
   const handleNextLevel = () => {
-    const nextLevelId = currentLevelId + 1;
-    if (getLevel(nextLevelId)) {
-      setCurrentLevelId(nextLevelId);
-      setGamePhase('menu');
+    if (levelSource === 'custom') {
+      // Try next custom level, otherwise go back to builtin
+      const currentIndex = availableCustomLevels.indexOf(customLevelName || '');
+      if (currentIndex >= 0 && currentIndex < availableCustomLevels.length - 1) {
+        setCustomLevelName(availableCustomLevels[currentIndex + 1]);
+        setGamePhase('menu');
+      } else {
+        // Switch back to builtin levels
+        setLevelSource('builtin');
+        setCurrentLevelId(1);
+        setCustomLevelName(null);
+        setGamePhase('menu');
+      }
+    } else {
+      const nextLevelId = currentLevelId + 1;
+      if (getLevel(nextLevelId)) {
+        setCurrentLevelId(nextLevelId);
+        setGamePhase('menu');
+      } else if (availableCustomLevels.length > 0) {
+        // Switch to custom levels
+        setLevelSource('custom');
+        setCustomLevelName(availableCustomLevels[0]);
+        setGamePhase('menu');
+      }
     }
+  };
+
+  const handleSelectCustomLevel = (levelName: string) => {
+    setCustomLevelName(levelName);
+    setLevelSource('custom');
+    setGamePhase('menu');
+  };
+
+  const handleSelectBuiltinLevel = (levelId: number) => {
+    setCurrentLevelId(levelId);
+    setLevelSource('builtin');
+    setCustomLevelName(null);
+    setGamePhase('menu');
   };
 
   const handleExit = () => {
@@ -439,6 +486,86 @@ export function PhysicsPuzzleMode() {
             {currentLevel.description}
           </p>
 
+          {/* Level Source Selection */}
+          <div
+            style={{
+              display: 'flex',
+              gap: W3BP0NG_THEME.spacing.md,
+              marginBottom: W3BP0NG_THEME.spacing.lg,
+            }}
+          >
+            <GlassButton
+              onClick={() => handleSelectBuiltinLevel(1)}
+              className={levelSource === 'builtin' ? 'active' : ''}
+              neonAccent="cyan"
+            >
+              🏗️ Built-in Levels
+            </GlassButton>
+            <GlassButton
+              onClick={() => availableCustomLevels.length > 0 && handleSelectCustomLevel(availableCustomLevels[0])}
+              className={levelSource === 'custom' ? 'active' : ''}
+              neonAccent="magenta"
+              disabled={availableCustomLevels.length === 0}
+            >
+              🛠️ Custom Levels ({availableCustomLevels.length})
+            </GlassButton>
+          </div>
+
+          {/* Level Selection */}
+          {levelSource === 'builtin' ? (
+            <div
+              style={{
+                display: 'flex',
+                gap: W3BP0NG_THEME.spacing.sm,
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+                marginBottom: W3BP0NG_THEME.spacing.lg,
+              }}
+            >
+              {Array.from({ length: 10 }, (_, i) => i + 1).map((levelId) => {
+                const level = getLevel(levelId);
+                if (!level) return null;
+
+                return (
+                  <GlassButton
+                    key={levelId}
+                    onClick={() => handleSelectBuiltinLevel(levelId)}
+                    className={currentLevelId === levelId ? 'active' : ''}
+                    neonAccent="cyan"
+                    size="small"
+                    style={{ minWidth: '60px' }}
+                  >
+                    {levelId}
+                  </GlassButton>
+                );
+              })}
+            </div>
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: W3BP0NG_THEME.spacing.sm,
+                maxHeight: '200px',
+                overflowY: 'auto',
+                marginBottom: W3BP0NG_THEME.spacing.lg,
+                width: '100%',
+              }}
+            >
+              {availableCustomLevels.map((levelName) => (
+                <GlassButton
+                  key={levelName}
+                  onClick={() => handleSelectCustomLevel(levelName)}
+                  className={customLevelName === levelName ? 'active' : ''}
+                  neonAccent="magenta"
+                  style={{ justifyContent: 'flex-start' }}
+                >
+                  📝 {levelName}
+                </GlassButton>
+              ))}
+            </div>
+          )}
+
           <div
             style={{
               display: 'flex',
@@ -446,7 +573,7 @@ export function PhysicsPuzzleMode() {
               fontSize: '2rem',
             }}
           >
-            {Array.from({ length: currentLevel.difficulty }).map((_, i) => (
+            {Array.from({ length: currentLevel?.difficulty || 1 }).map((_, i) => (
               <span key={i} className="text-glow-cyan">
                 ◆
               </span>

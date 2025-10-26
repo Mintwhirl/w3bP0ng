@@ -22,7 +22,7 @@
   "git_preferences": {
     "add_pattern": "ask",
     "default_branch": "main",
-    "commit_style": "simple",
+    "commit_style": "detailed",
     "auto_merge": true,
     "auto_push": true,
     "has_submodules": false
@@ -30,7 +30,7 @@
   "environment": {
     "os": "windows",
     "shell": "powershell",
-    "developer_name": "Kevin"
+    "developer_name": "kevin"
   },
   "blocked_actions": {
     "implementation_only_tools": [

@@ -259,6 +259,10 @@ interface GlassButtonProps {
   variant?: 'primary' | 'secondary';
   disabled?: boolean;
   className?: string;
+  neonAccent?: 'magenta' | 'cyan' | 'violet' | 'none';
+  size?: 'small' | 'medium' | 'large';
+  title?: string;
+  style?: CSSProperties;
 }
 
 export function GlassButton({
@@ -267,17 +271,25 @@ export function GlassButton({
   variant = 'secondary',
   disabled = false,
   className = '',
+  neonAccent = 'none',
+  size = 'medium',
+  title,
+  style = {},
 }: GlassButtonProps) {
   const variantClass = variant === 'primary' ? 'glass-button-primary' : '';
+  const sizeClass = size !== 'medium' ? `glass-button-${size}` : '';
+  const accentClass = neonAccent !== 'none' ? `glass-neon-${neonAccent}` : '';
 
   return (
     <button
-      className={`glass-button ${variantClass} ${className}`.trim()}
+      className={`glass-button ${variantClass} ${sizeClass} ${accentClass} ${className}`.trim()}
       onClick={onClick}
       disabled={disabled}
+      title={title}
       style={{
         opacity: disabled ? 0.5 : 1,
         cursor: disabled ? 'not-allowed' : 'pointer',
+        ...style,
       }}
     >
       {children}

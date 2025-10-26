@@ -22,15 +22,37 @@ export default defineConfig({
   },
   build: {
     target: 'es2020',
-    sourcemap: true,
+    sourcemap: process.env.NODE_ENV === 'development',
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: process.env.NODE_ENV === 'production',
+        drop_debugger: true,
+      },
+    },
     rollupOptions: {
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom'],
           'vendor-game': ['pixi.js', 'tone', 'zustand', 'gsap'],
         },
+        assetFileNames: (assetInfo) => {
+          const info = assetInfo.name?.split('.') || [];
+          const ext = info[info.length - 1];
+          if (/\.(mp4|webm|ogg|mp3|wav|flac|aac)$/.test(assetInfo.name || '')) {
+            return `assets/media/[name]-[hash][extname]`;
+          }
+          if (/\.(png|jpe?g|gif|svg|ico|webp)$/.test(assetInfo.name || '')) {
+            return `assets/images/[name]-[hash][extname]`;
+          }
+          if (/\.(woff2?|eot|ttf|otf)$/.test(assetInfo.name || '')) {
+            return `assets/fonts/[name]-[hash][extname]`;
+          }
+          return `assets/[name]-[hash][extname]`;
+        },
       },
     },
+    assetsInlineLimit: 4096,
   },
   server: {
     port: 5173,

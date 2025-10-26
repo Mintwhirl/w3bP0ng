@@ -15,6 +15,10 @@ export class BeatSync {
   private beatTimestamps: number[];
   private timing: BeatTiming;
 
+  get currentBPM(): number {
+    return this.bpm;
+  }
+
   constructor(bpm: number, duration: number, timing: BeatTiming = DEFAULT_BEAT_TIMING) {
     this.bpm = bpm;
     this.duration = duration;

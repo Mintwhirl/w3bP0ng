@@ -1,6 +1,15 @@
 node_modules
 dist
 
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+
+# Build outputs
+.vercel
+
 # cc-sessions runtime files
 sessions/sessions-state.json
 sessions/package.json

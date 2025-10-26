@@ -8,7 +8,7 @@ import { create } from 'zustand';
 /**
  * Available game modes
  */
-export type GameMode = 'menu' | 'classic' | 'puzzle' | 'rhythm' | 'battle-royale' | 'editor';
+export type GameMode = 'title' | 'menu' | 'classic' | 'puzzle' | 'rhythm' | 'battle-royale' | 'editor';
 
 /**
  * Game mode metadata for UI display
@@ -58,7 +58,7 @@ export const GAME_MODES: GameModeInfo[] = [
     id: 'puzzle',
     name: 'Physics Puzzle',
     description: 'Breakout meets Portal - Solve geometric challenges',
-    available: false,
+    available: true,
     icon: '🧩',
   },
   {
@@ -72,14 +72,14 @@ export const GAME_MODES: GameModeInfo[] = [
     id: 'battle-royale',
     name: 'Battle Royale',
     description: '8-player elimination - Last one standing wins',
-    available: false,
+    available: true,
     icon: '⚔️',
   },
   {
     id: 'editor',
     name: 'Level Editor',
     description: 'Create and share custom puzzle levels',
-    available: false,
+    available: true,
     icon: '🛠️',
   },
 ];
@@ -89,7 +89,7 @@ export const GAME_MODES: GameModeInfo[] = [
  */
 export const useGameStore = create<GameStore>((set) => ({
   // Initial state
-  currentMode: 'menu',
+  currentMode: 'title',
   soundEnabled: true,
   currentTheme: 'synthwave-sunset',
   settingsPanelOpen: false,

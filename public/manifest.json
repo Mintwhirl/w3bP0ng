@@ -1,0 +1,114 @@
+{
+  "name": "W3BP0NG",
+  "short_name": "W3BP0NG",
+  "description": "Next-generation Pong with liquid glass synthwave aesthetics",
+  "start_url": "/w3bP0ng/",
+  "display": "standalone",
+  "background_color": "#0b001a",
+  "theme_color": "#a855f7",
+  "orientation": "landscape-primary",
+  "scope": "/w3bP0ng/",
+  "icons": [
+    {
+      "src": "/icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "splash_pages": [
+    {
+      "src": "/splash/splash-640x1136.png",
+      "sizes": "640x1136",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/splash/splash-750x1334.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/splash/splash-1125x2436.png",
+      "sizes": "1125x2436",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Classic Mode",
+      "short_name": "Classic",
+      "description": "Jump into classic Pong gameplay",
+      "url": "/w3bP0ng/?mode=classic",
+      "icons": [
+        {
+          "src": "/icons/shortcut-classic.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Main Menu",
+      "short_name": "Menu",
+      "description": "Go to the main menu",
+      "url": "/w3bP0ng/menu",
+      "icons": [
+        {
+          "src": "/icons/shortcut-menu.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "categories": ["games", "entertainment"],
+  "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
+}

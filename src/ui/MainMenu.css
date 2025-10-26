@@ -460,6 +460,19 @@
   width: 100%;
 }
 
+.about-button {
+  background: rgba(168, 85, 247, 0.1);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  color: #a855f7;
+  text-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+}
+
+.about-button:hover {
+  background: rgba(168, 85, 247, 0.2);
+  border-color: rgba(168, 85, 247, 0.6);
+  color: #ffffff;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .menu-title {

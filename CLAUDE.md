@@ -39,6 +39,42 @@ A modern, feature-rich implementation of Pong with advanced game mechanics, AI o
 - Focus on "game juice" and modern indie game feel
 - Iterative improvement with immediate testing and feedback
 
+## 🎨 Design System
+
+**W3BP0NG follows a strict "Liquid Glass Synthwave" aesthetic.**
+
+All modes, menus, transitions, and UI must visually match the Main Menu's holographic arcade interface. See `docs/DESIGN_SYSTEM.md` for complete guidelines.
+
+### Key Design Principles
+1. **Deep cosmic backgrounds** — Violet-blue gradients (#0b001a → #140033)
+2. **Glassmorphism** — Translucent panels with blur and soft edges
+3. **Neon accents** — Magenta (#a855f7) and cyan (#22d3ee) only
+4. **Smooth motion** — cubic-bezier(0.4, 0, 0.2, 1) easing everywhere
+5. **Typography** — Orbitron font with neon glow
+6. **Depth** — Layering through transparency, blur, and shadows
+
+### Design System Files
+- `w3bp0ng-theme.config.js` — Theme tokens and configuration
+- `src/styles/glassmorphism.css` — Reusable glass panel utilities
+- `src/ui/GlassHUD.tsx` — Pre-built HUD components
+- `src/ui/ModeTransition.tsx` — Smooth mode transitions
+- `docs/DESIGN_SYSTEM.md` — Complete design guidelines
+
+### When Creating New Modes
+**Always:**
+- Import `W3BP0NG_THEME` for colors, spacing, motion
+- Use `glassmorphism.css` classes (`glass-panel`, `glass-button`, etc.)
+- Apply `cosmic-bg` class for backgrounds
+- Use pre-built HUD components from `GlassHUD.tsx`
+- Follow cubic-bezier easing for all transitions
+- Match the visual feel of the Main Menu
+
+**Never:**
+- Hardcode colors (always reference theme)
+- Use harsh borders or solid backgrounds
+- Introduce new fonts or design patterns
+- Break the holographic continuity
+
 ## Development Commands
 - `npm install` - Install dependencies
 - `npm run dev` - Start development server (http://localhost:5173)
