@@ -9,12 +9,13 @@ import { execSync } from 'child_process';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync } from 'fs';
 import { join, dirname } from 'path';
 import { createHash } from 'crypto';
+import { fileURLToPath } from 'url';
 
 // ════════════════════════════════════════════════════════════
 // CONFIGURATION
 // ══════════════════════════════════════════════════════════
 
-const PROJECT_ROOT = dirname(__dirname);
+const PROJECT_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const DIST_DIR = join(PROJECT_ROOT, 'dist');
 const REPORTS_DIR = join(PROJECT_ROOT, 'build-reports');
 
@@ -391,7 +392,6 @@ function checkBuildOutputs() {
       if (file.relativePath === 'version.json') outputCheck.hasVersion = true;
     }
   }
-  }
 
   outputCheck.assetCount = files.filter(f => f.isFile).length;
 
@@ -411,7 +411,7 @@ async function main() {
   console.log('');
 
   switch (command) {
-    case 'files':
+    case 'files': {
       const outputCheck = checkBuildOutputs();
       console.log('Build Output Summary:');
       console.log(`  Dist directory exists: ${outputCheck.distExists}`);
@@ -424,8 +424,9 @@ async function main() {
         console.log(`  Largest file: ${outputCheck.largestFile.relativePath} (${formatBytes(outputCheck.largestFile.size)})`);
       }
       break;
+    }
 
-    case 'integrity':
+    case 'integrity': {
       if (!existsSync(DIST_DIR)) {
         log('Dist directory not found', 'error');
         process.exit(1);
@@ -438,8 +439,9 @@ async function main() {
 
       generateIntegrityReport(integrityReport, pwaChecks, seoChecks);
       break;
+    }
 
-    case 'full':
+    case 'full': {
       // Run both checks
       const outputCheck = checkBuildOutputs();
       const files = scanDirectory(DIST_DIR);
@@ -469,6 +471,7 @@ async function main() {
       writeFileSync(htmlPath, htmlReport);
       log(`HTML report generated: ${htmlPath}`, 'success');
       break;
+    }
 
     default:
       console.log('📖 W3BP0NG Build Verification Tool');

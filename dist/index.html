@@ -4,13 +4,45 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Web Pong Game</title>
-    <script type="module" crossorigin src="/w3bP0ng/assets/index-B4np8WMm.js"></script>
-    <link rel="modulepreload" crossorigin href="/w3bP0ng/assets/vendor-react-Bzgz95E1.js">
-    <link rel="modulepreload" crossorigin href="/w3bP0ng/assets/vendor-game-BkVJ-3hF.js">
-    <link rel="stylesheet" crossorigin href="/w3bP0ng/assets/index-C0HD0tKd.css">
+    <title>W3BP0NG - Next-Generation Pong</title>
+    <meta name="description" content="Experience Pong like never before with liquid glass synthwave aesthetics, multiple game modes, and cutting-edge web technology." />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/w3bP0ng/manifest.json" />
+
+    <!-- Preload critical resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="//fonts.gstatic.com">
+
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('✅ Service Worker registered:', registration.scope);
+            })
+            .catch(error => {
+              console.warn('❌ Service Worker registration failed:', error);
+            });
+        });
+      }
+    </script>
+    <script type="module" crossorigin src="/w3bP0ng/assets/index-DVh77-oT.js"></script>
+    <link rel="modulepreload" crossorigin href="/w3bP0ng/assets/vendor-react-B_uAldPx.js">
+    <link rel="modulepreload" crossorigin href="/w3bP0ng/assets/vendor-game-BOEY4San.js">
+    <link rel="stylesheet" crossorigin href="/w3bP0ng/assets/index-V1qyKSqC.css">
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- Fallback for no JavaScript -->
+    <noscript>
+      <div style="font-family: 'Orbitron', monospace; text-align: center; padding: 2rem; color: #a855f7;">
+        <h1>W3BP0NG</h1>
+        <p>JavaScript is required to play this game.</p>
+        <p>Please enable JavaScript in your browser settings.</p>
+      </div>
+    </noscript>
   </body>
 </html>

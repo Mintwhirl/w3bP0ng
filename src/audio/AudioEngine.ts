@@ -19,7 +19,6 @@ export interface AudioTheme {
 }
 
 export interface SoundEffect {
-  id: string;
   url?: string;
   volume: number;
   pitch?: number;
@@ -136,7 +135,6 @@ export class AudioEngine {
   };
 
   private audioLoaded = false;
-  private loadingPromises: Promise<void>[] = [];
 
   static getInstance(): AudioEngine {
     if (!AudioEngine.instance) {
@@ -432,7 +430,6 @@ export class AudioEngine {
   }
 
   private async crossFadeTheme(newThemeName: string, newTheme: AudioTheme): Promise<void> {
-    const oldTheme = AUDIO_THEMES[this.currentTheme];
     const fadeDuration = newTheme.crossFadeDuration;
 
     // Create fade-out gain for current music
@@ -525,7 +522,7 @@ export class AudioEngine {
   // SOUND EFFECTS
   // ═════════════════════════════════════════════════════════
 
-  playSoundEffect(soundId: string, volumeMultiplier: number = 1): void {
+  playSoundEffect(soundId: string): void {
     if (!this.audioLoaded || !this.settings.soundEnabled) return;
 
     const effect = SOUND_EFFECTS[soundId];
@@ -600,6 +597,8 @@ export class AudioEngine {
     try {
       const saveData = loadSaveData();
       saveData.settings = {
+        ...saveData.settings,
+        masterVolume: this.settings.masterVolume,
         musicVolume: this.settings.musicVolume,
         sfxVolume: this.settings.sfxVolume,
         soundEnabled: this.settings.soundEnabled,

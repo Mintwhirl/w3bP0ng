@@ -4,6 +4,7 @@
  * Implements smooth transitions following W3BP0NG liquid glass synthwave aesthetic
  */
 
+import React from 'react';
 import { useGameStore, type GameMode } from './hooks/useGameStore';
 import TitleScreen from './ui/TitleScreen';
 import MainMenu from './ui/MainMenu';

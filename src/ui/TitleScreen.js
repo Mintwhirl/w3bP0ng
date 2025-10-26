@@ -1,160 +1,81 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 /**
  * Title Screen Component
  * Animated logo reveal with "Press Start" shimmer button
  * Implements W3BP0NG liquid glass synthwave aesthetic
  */
-
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { GlassPanel, GlassButton } from './GlassHUD';
 import { ParticleBackground } from './ParticleBackground';
 import { useGameStore } from '../hooks/useGameStore';
 import { checkAchievements } from '../core/achievements';
 import { incrementPlayTime } from '../utils/saveManager';
 import '../styles/glassmorphism.css';
-
 export default function TitleScreen() {
-  const { setMode } = useGameStore();
-  const [showButton, setShowButton] = useState(false);
-  const [isHovering, setIsHovering] = useState(false);
-  const [fadeOut, setFadeOut] = useState(false);
-  const [particlesActive, setParticlesActive] = useState(false);
-
-  // Animation sequence
-  useEffect(() => {
-    // Phase 1: Logo fade in (immediate)
-    const logoTimer = setTimeout(() => {
-      setShowButton(true);
-      setParticlesActive(true);
-    }, 500);
-
-    // Phase 2: Auto-skip after 5 seconds
-    const autoSkipTimer = setTimeout(() => {
-      handleStart();
-    }, 5000);
-
-    // Cleanup
-    return () => {
-      clearTimeout(logoTimer);
-      clearTimeout(autoSkipTimer);
-    };
-  }, []);
-
-  // Track play time while on title screen
-  useEffect(() => {
-    const interval = setInterval(() => {
-      incrementPlayTime(100); // Add 100ms every 100ms
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Play startup jingle (placeholder for audio system)
-  useEffect(() => {
-    if (particlesActive) {
-      // TODO: Play startup jingle when audio system is implemented
-      console.log('🎵 Playing startup jingle...');
-    }
-  }, [particlesActive]);
-
-  // Check for any achievement unlocks
-  useEffect(() => {
-    checkAchievements();
-  }, []);
-
-  const handleStart = useCallback(() => {
-    setFadeOut(true);
-    setMode('menu');
-  }, [setMode]);
-
-  const handleKeyPress = useCallback((event: KeyboardEvent) => {
-    // Any key press starts the game
-    if (event.key === 'Enter' || event.key === ' ' || event.key === 'Escape') {
-      event.preventDefault();
-      handleStart();
-    }
-  }, [handleStart]);
-
-  const handleClick = useCallback(() => {
-    handleStart();
-  }, [handleStart]);
-
-  // Global keyboard listener
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyPress);
-    window.addEventListener('click', handleClick);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyPress);
-      window.removeEventListener('click', handleClick);
-    };
-  }, [handleKeyPress, handleClick]);
-
-  return (
-    <div className={`title-screen ${fadeOut ? 'fade-out' : ''}`}>
-      {/* Particle Background */}
-      <ParticleBackground />
-
-      {/* Main Title Container */}
-      <div className="title-container">
-        <GlassPanel
-          variant="subtle"
-          neonAccent="magenta"
-          className="title-panel"
-        >
-          {/* Logo */}
-          <div className="logo-container">
-            <h1 className="game-title animate-logo-reveal">
-              w3b<span className="highlight">P</span>0ng
-            </h1>
-            <div className="title-glow animate-pulse-glow" />
-          </div>
-
-          {/* Subtitle */}
-          <p className="game-subtitle animate-fade-in-delay">
-            ARCADE MAYHEM UNLEASHED
-          </p>
-
-          {/* Start Button */}
-          {showButton && (
-            <div className="start-button-container animate-slide-up">
-              <GlassButton
-                neonAccent="cyan"
-                variant="primary"
-                className="start-button"
-                onClick={handleStart}
-              >
-                <span className={`button-text ${isHovering ? 'shimmer' : ''}`}>
-                  Press Start
-                </span>
-                {isHovering && (
-                  <div className="button-glow animate-pulse-glow" />
-                )}
-              </GlassButton>
-
-              {/* Keyboard prompt */}
-              <p className="keyboard-prompt animate-fade-in-delay-2">
-                Press ENTER or click to begin
-              </p>
-            </div>
-          )}
-
-          {/* Version info */}
-          <div className="version-info animate-fade-in-delay-3">
-            <span className="version-text">v1.0.0</span>
-            <span className="separator">•</span>
-            <span className="build-info">GLM Build Verified</span>
-          </div>
-        </GlassPanel>
-
-        {/* Decorative elements */}
-        <div className="decorative-elements">
-          <div className="floating-orb orb-1 animate-float" />
-          <div className="floating-orb orb-2 animate-float-delay" />
-          <div className="floating-orb orb-3 animate-float-delay-2" />
-        </div>
-      </div>
-
-      <style>{`
+    const { setMode } = useGameStore();
+    const [showButton, setShowButton] = useState(false);
+    const [isHovering, setIsHovering] = useState(false);
+    const [fadeOut, setFadeOut] = useState(false);
+    const [particlesActive, setParticlesActive] = useState(false);
+    // Animation sequence
+    useEffect(() => {
+        // Phase 1: Logo fade in (immediate)
+        const logoTimer = setTimeout(() => {
+            setShowButton(true);
+            setParticlesActive(true);
+        }, 500);
+        // Phase 2: Auto-skip after 5 seconds
+        const autoSkipTimer = setTimeout(() => {
+            handleStart();
+        }, 5000);
+        // Cleanup
+        return () => {
+            clearTimeout(logoTimer);
+            clearTimeout(autoSkipTimer);
+        };
+    }, []);
+    // Track play time while on title screen
+    useEffect(() => {
+        const interval = setInterval(() => {
+            incrementPlayTime(100); // Add 100ms every 100ms
+        }, 100);
+        return () => clearInterval(interval);
+    }, []);
+    // Play startup jingle (placeholder for audio system)
+    useEffect(() => {
+        if (particlesActive) {
+            // TODO: Play startup jingle when audio system is implemented
+            console.log('🎵 Playing startup jingle...');
+        }
+    }, [particlesActive]);
+    // Check for any achievement unlocks
+    useEffect(() => {
+        checkAchievements();
+    }, []);
+    const handleStart = useCallback(() => {
+        setFadeOut(true);
+        setMode('menu');
+    }, [setMode]);
+    const handleKeyPress = useCallback((event) => {
+        // Any key press starts the game
+        if (event.key === 'Enter' || event.key === ' ' || event.key === 'Escape') {
+            event.preventDefault();
+            handleStart();
+        }
+    }, [handleStart]);
+    const handleClick = useCallback(() => {
+        handleStart();
+    }, [handleStart]);
+    // Global keyboard listener
+    useEffect(() => {
+        window.addEventListener('keydown', handleKeyPress);
+        window.addEventListener('click', handleClick);
+        return () => {
+            window.removeEventListener('keydown', handleKeyPress);
+            window.removeEventListener('click', handleClick);
+        };
+    }, [handleKeyPress, handleClick]);
+    return (_jsxs("div", { className: `title-screen ${fadeOut ? 'fade-out' : ''}`, children: [_jsx(ParticleBackground, {}), _jsxs("div", { className: "title-container", children: [_jsxs(GlassPanel, { variant: "subtle", neonAccent: "magenta", className: "title-panel", children: [_jsxs("div", { className: "logo-container", children: [_jsxs("h1", { className: "game-title animate-logo-reveal", children: ["w3b", _jsx("span", { className: "highlight", children: "P" }), "0ng"] }), _jsx("div", { className: "title-glow animate-pulse-glow" })] }), _jsx("p", { className: "game-subtitle animate-fade-in-delay", children: "ARCADE MAYHEM UNLEASHED" }), showButton && (_jsxs("div", { className: "start-button-container animate-slide-up", children: [_jsxs(GlassButton, { neonAccent: "cyan", variant: "primary", className: "start-button", onClick: handleStart, children: [_jsx("span", { className: `button-text ${isHovering ? 'shimmer' : ''}`, children: "Press Start" }), isHovering && (_jsx("div", { className: "button-glow animate-pulse-glow" }))] }), _jsx("p", { className: "keyboard-prompt animate-fade-in-delay-2", children: "Press ENTER or click to begin" })] })), _jsxs("div", { className: "version-info animate-fade-in-delay-3", children: [_jsx("span", { className: "version-text", children: "v1.0.0" }), _jsx("span", { className: "separator", children: "\u2022" }), _jsx("span", { className: "build-info", children: "GLM Build Verified" })] })] }), _jsxs("div", { className: "decorative-elements", children: [_jsx("div", { className: "floating-orb orb-1 animate-float" }), _jsx("div", { className: "floating-orb orb-2 animate-float-delay" }), _jsx("div", { className: "floating-orb orb-3 animate-float-delay-2" })] })] }), _jsx("style", { children: `
         .title-screen {
           position: fixed;
           top: 0;
@@ -520,7 +441,5 @@ export default function TitleScreen() {
             font-size: 1rem;
           }
         }
-      `}</style>
-    </div>
-  );
+      ` })] }));
 }

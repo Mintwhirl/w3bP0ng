@@ -15,7 +15,10 @@
       "Bash(npm run verify)",
       "Bash(node scripts/build-verification.js:*)",
       "Bash(node:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npm run build:full:*)",
+      "Bash(npm run preview:*)",
+      "Bash(npx vercel:*)"
     ],
     "deny": [],
     "ask": []
