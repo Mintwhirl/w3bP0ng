@@ -65,7 +65,7 @@ export const GAME_MODES: GameModeInfo[] = [
     id: 'rhythm',
     name: 'Rhythm Mode',
     description: 'Hit the ball on-beat for combos and score multipliers',
-    available: false,
+    available: true,
     icon: '🎵',
   },
   {
