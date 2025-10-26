@@ -4,7 +4,7 @@ Deployment Metadata
 
 - Commit: 89a08cd (short)
 - Build artifact: dist/assets/index-jWJpSjkq.js
-- Vercel Production URL: https://w3bp0ng-rjjh08nta-kevin-stewarts-projects-28099358.vercel.app
+- Vercel Production URL (LIVE_DEPLOYMENT_URL): https://w3bp0ng-8or9k3zz8-kevin-stewarts-projects-28099358.vercel.app
 
 Verification Checklist
 
