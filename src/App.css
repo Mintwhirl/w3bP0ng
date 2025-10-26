@@ -39,6 +39,7 @@ body::before {
     radial-gradient(ellipse at 40% 60%, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
   pointer-events: none;
   animation: backgroundFlow 25s ease-in-out infinite;
+  z-index: 0;
 }
 
 @keyframes backgroundFlow {
@@ -117,10 +118,17 @@ h1::after {
   box-shadow: none;
   backdrop-filter: none;
   overflow: hidden;
+  z-index: 10;
 }
 
 .App.full-bleed::before {
   content: none;
+}
+
+/* Ensure canvases in game modes render above background overlays */
+.App.full-bleed canvas {
+  position: absolute;
+  z-index: 5;
 }
 
 @keyframes titlePulse {
