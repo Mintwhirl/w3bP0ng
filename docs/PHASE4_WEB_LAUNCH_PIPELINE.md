@@ -15,6 +15,7 @@ Title Screen | ✅ | ✅ | — | ✅
 Main Menu | ✅ | ✅ | ✅ | ✅
 Classic Mode | ✅ | ✅ | ✅ | ✅
 Physics Puzzle | ✅ | ✅ | ✅ | ✅
+Rhythm Mode | ✅ | ✅ | ✅ | ✅
 
 ## 🚀 OVERVIEW
 
