@@ -44,7 +44,8 @@
       "Bash(sessions config phrases list implementation_mode)",
       "Bash(sessions/bin/sessions.bat config:*)",
       "Bash(cp:*)",
-      "Bash(sessions/bin/sessions.bat:*)"
+      "Bash(sessions/bin/sessions.bat:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
