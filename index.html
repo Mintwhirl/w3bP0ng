@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -20,10 +20,10 @@
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
             .then(registration => {
-              console.log('✅ Service Worker registered:', registration.scope);
+              console.log('âœ… Service Worker registered:', registration.scope);
             })
             .catch(error => {
-              console.warn('❌ Service Worker registration failed:', error);
+              console.warn('âŒ Service Worker registration failed:', error);
             });
         });
       }
