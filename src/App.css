@@ -91,6 +91,24 @@ h1::after {
   animation: titlePulse 4s ease-in-out infinite;
 }
 
+/* Full-bleed mode container for in-game views */
+.App.full-bleed {
+  width: 100vw;
+  height: 100vh;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  overflow: hidden;
+}
+
+.App.full-bleed::before {
+  content: none;
+}
+
 @keyframes titlePulse {
   0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
   50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.6; }

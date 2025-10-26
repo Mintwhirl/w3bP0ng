@@ -65,8 +65,10 @@ function App() {
     }
   }, [currentMode]);
 
+  const isGameMode = currentMode !== 'title' && currentMode !== 'menu';
+
   return (
-    <div className="App cosmic-bg">
+    <div className={`App cosmic-bg ${isGameMode ? 'full-bleed' : ''}`}>
       <ModeTransition mode={currentMode}>
         <ModeComponent />
       </ModeTransition>
