@@ -679,21 +679,53 @@ export class AudioEngine {
 // GLOBAL INSTANCE AND EXPORTS
 // ═════════════════════════════════════════════════════════
 
-export const audioEngine = AudioEngine.getInstance();
+// User-gesture gated convenience functions
+let USER_UNLOCKED = false;
+let pendingTheme: string | null = null;
 
-// Convenience functions
+function setupAudioUnlockOnce() {
+  if (typeof window === 'undefined') return;
+  if ((window as any).__w3bp0ng_audio_unlock_attached) return;
+  (window as any).__w3bp0ng_audio_unlock_attached = true;
+
+  const unlock = () => {
+    if (USER_UNLOCKED) return;
+    USER_UNLOCKED = true;
+    try {
+      const engine = AudioEngine.getInstance();
+      (engine as any).resumeAudio?.();
+      if (pendingTheme) {
+        (engine as any).setTheme?.(pendingTheme);
+        pendingTheme = null;
+      }
+    } catch {}
+  };
+  window.addEventListener('pointerdown', unlock, { passive: true });
+  window.addEventListener('keydown', unlock);
+  window.addEventListener('touchstart', unlock as any, { passive: true });
+}
+
+setupAudioUnlockOnce();
+
 export function setAudioTheme(themeName: string): void {
-  audioEngine.setTheme(themeName);
+  setupAudioUnlockOnce();
+  if (!USER_UNLOCKED) { pendingTheme = themeName; return; }
+  AudioEngine.getInstance().setTheme(themeName);
 }
 
 export function playSoundEffect(soundId: string): void {
-  audioEngine.playSoundEffect(soundId);
+  if (!USER_UNLOCKED) return;
+  AudioEngine.getInstance().playSoundEffect(soundId);
 }
 
 export function updateAudioSettings(settings: Partial<AudioSettings>): void {
-  audioEngine.updateSettings(settings);
+  if (!USER_UNLOCKED) return;
+  AudioEngine.getInstance().updateSettings(settings);
 }
 
 export function getAudioSettings(): AudioSettings {
-  return audioEngine.getSettings();
+  if (!USER_UNLOCKED) {
+    return { masterVolume: 0.8, musicVolume: 0.7, sfxVolume: 0.8, soundEnabled: true };
+  }
+  return AudioEngine.getInstance().getSettings();
 }
