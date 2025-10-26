@@ -66,6 +66,16 @@ function App() {
   }, [currentMode]);
 
   const isGameMode = currentMode !== 'title' && currentMode !== 'menu';
+  // Toggle body class to ensure layout stretches in game modes
+  React.useEffect(() => {
+    const cls = 'game-mode';
+    if (isGameMode) {
+      document.body.classList.add(cls);
+    } else {
+      document.body.classList.remove(cls);
+    }
+    return () => document.body.classList.remove(cls);
+  }, [isGameMode]);
 
   return (
     <div className={`App cosmic-bg ${isGameMode ? 'full-bleed' : ''}`}>
