@@ -28,8 +28,8 @@
   ],
   "build": {
     "env": {
-      "NODE_ENV": "production",
-      "NODE_VERSION": "18.17.0"
+      "NODE_VERSION": "18.17.0",
+      "NPM_CONFIG_PRODUCTION": "false"
     }
   }
 }
