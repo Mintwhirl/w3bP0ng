@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useAudioInit } from '../audio/AudioEngine';
 import { GlassPanel, GlassButton } from './GlassHUD';
 import { ParticleBackground } from './ParticleBackground';
 import { useGameStore } from '../hooks/useGameStore';
@@ -14,6 +15,7 @@ import '../styles/glassmorphism.css';
 
 export default function TitleScreen() {
   const { setMode } = useGameStore();
+  const audioReady = useAudioInit();
   const [showButton, setShowButton] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
@@ -124,7 +126,7 @@ export default function TitleScreen() {
                 onClick={handleStart}
               >
                 <span className={`button-text ${isHovering ? 'shimmer' : ''}`}>
-                  Press Start
+                  {audioReady ? 'Press Start' : 'Click to Enable Audio'}
                 </span>
                 {isHovering && (
                   <div className="button-glow animate-pulse-glow" />
