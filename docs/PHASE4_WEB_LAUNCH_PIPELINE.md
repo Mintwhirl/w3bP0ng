@@ -13,6 +13,7 @@ Mode | Renders | Input | HUD | Audio
 ---|---|---|---|---
 Title Screen | ✅ | ✅ | — | ✅
 Main Menu | ✅ | ✅ | ✅ | ✅
+Classic Mode | ✅ | ✅ | ✅ | ✅
 
 ## 🚀 OVERVIEW
 
