@@ -17,6 +17,7 @@ Classic Mode | ✅ | ✅ | ✅ | ✅
 Physics Puzzle | ✅ | ✅ | ✅ | ✅
 Rhythm Mode | ✅ | ✅ | ✅ | ✅
 Battle Royale | ✅ | ✅ | ✅ | ✅
+Level Editor | ✅ | ✅ | ✅ | ✅
 
 ## 🚀 OVERVIEW
 
