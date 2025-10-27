@@ -2,52 +2,47 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>W3BP0NG - Next-Generation Pong</title>
-    <!-- SW/Cache reset to avoid stale assets during stabilization -->
-    <script>
-      (function hardResetServiceWorkers() {
-        if ('serviceWorker' in navigator) {
-          if (navigator.serviceWorker.getRegistrations) {
-            navigator.serviceWorker.getRegistrations().then(function(regs){
-              regs.forEach(function(r){ try { r.unregister(); } catch(e){} });
-            });
-          }
-        }
-        if (window.caches && caches.keys) {
-          caches.keys().then(function(keys){ keys.forEach(function(k){ caches.delete(k); }); }).catch(function(){});
-        }
-      })();
-    </script>    <meta name="description" content="Experience Pong like never before with liquid glass synthwave aesthetics, multiple game modes, and cutting-edge web technology." />
-
-    <!-- PWA Manifest -->
-    
+    <meta name="description" content="Experience Pong like never before with liquid glass synthwave aesthetics, multiple game modes, and cutting-edge web technology." />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
 
     <!-- Preload critical resources -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="dns-prefetch" href="//fonts.gstatic.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="//fonts.gstatic.com" />
 
-    <!-- Service Worker Registration -->
+    <!-- Optional: Delay SW registration; only if /sw.js exists -->
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-              console.log('âœ… Service Worker registered:', registration.scope);
-            })
-            .catch(error => {
-              console.warn('âŒ Service Worker registration failed:', error);
-            });
+      (function () {
+        window.addEventListener('load', function () {
+          setTimeout(function () {
+            if ('serviceWorker' in navigator) {
+              fetch('/sw.js', { method: 'HEAD' })
+                .then(function (r) {
+                  if (r.ok) {
+                    navigator.serviceWorker
+                      .register('/sw.js')
+                      .then(function (reg) {
+                        console.log('[SW] registered:', reg.scope);
+                      })
+                      .catch(function (err) {
+                        console.warn('[SW] registration failed:', err);
+                      });
+                  }
+                })
+                .catch(function () {
+                  // no sw.js present; skip
+                });
+            }
+          }, 1500);
         });
-      }
+      })();
     </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
 
-    <!-- Fallback for no JavaScript -->
     <noscript>
       <div style="font-family: 'Orbitron', monospace; text-align: center; padding: 2rem; color: #a855f7;">
         <h1>W3BP0NG</h1>
@@ -57,4 +52,3 @@
     </noscript>
   </body>
 </html>
-
