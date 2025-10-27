@@ -11,32 +11,25 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="//fonts.gstatic.com" />
 
-    <!-- Optional: Delay SW registration; only if /sw.js exists -->
+    <!-- ✅ Safe UTF-8 clean version of service worker registration -->
     <script>
-      (function () {
-        window.addEventListener('load', function () {
-          setTimeout(function () {
-            if ('serviceWorker' in navigator) {
-              fetch('/sw.js', { method: 'HEAD' })
-                .then(function (r) {
-                  if (r.ok) {
-                    navigator.serviceWorker
-                      .register('/sw.js')
-                      .then(function (reg) {
-                        console.log('[SW] registered:', reg.scope);
-                      })
-                      .catch(function (err) {
-                        console.warn('[SW] registration failed:', err);
-                      });
-                  }
-                })
-                .catch(function () {
-                  // no sw.js present; skip
-                });
-            }
-          }, 1500);
-        });
-      })();
+      // ✅ Safe UTF-8 clean version of service worker registration
+      window.addEventListener("load", () => {
+        setTimeout(() => {
+          if ("serviceWorker" in navigator) {
+            navigator.serviceWorker
+              .register("/service-worker.js")
+              .then(() => {
+                console.log("✅ Service Worker registered:", window.location.href);
+              })
+              .catch((error) => {
+                console.warn("❌ Service Worker registration failed:", error);
+              });
+          } else {
+            console.log("Service workers not supported in this browser.");
+          }
+        }, 500); // small delay prevents hydration race conditions
+      });
     </script>
   </head>
   <body>
