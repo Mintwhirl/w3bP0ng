@@ -3,9 +3,12 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 // https://vite.dev/config/
+const isVercel = !!process.env.VERCEL;
+const computedBase = isVercel ? '/' : '/w3bP0ng/';
+
 export default defineConfig({
   plugins: [react()],
-  base: '/w3bP0ng/', // GitHub Pages deployment path
+  base: computedBase,
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
