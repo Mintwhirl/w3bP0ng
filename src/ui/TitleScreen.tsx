@@ -1,11 +1,11 @@
-/**
+﻿/**
  * Title Screen Component
  * Animated logo reveal with "Press Start" shimmer button
  * Implements W3BP0NG liquid glass synthwave aesthetic
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAudioInit } from '../audio/AudioEngine';
+import { unlockAudioOnUserGesture, isAudioReady } from '../audio/AudioEngine';
 import { GlassPanel, GlassButton } from './GlassHUD';
 import { ParticleBackground } from './ParticleBackground';
 import { useGameStore } from '../hooks/useGameStore';
@@ -15,30 +15,18 @@ import '../styles/glassmorphism.css';
 
 export default function TitleScreen({ onStart }: { onStart?: () => void }) {
   const { setMode } = useGameStore();
-  const audioReady = useAudioInit();
+  const [ready, setReady] = useState(isAudioReady());
   const [showButton, setShowButton] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
   const [particlesActive, setParticlesActive] = useState(false);
 
   // Animation sequence
+  
   useEffect(() => {
-    // Phase 1: Logo fade in (immediate)
-    const logoTimer = setTimeout(() => {
-      setShowButton(true);
-      setParticlesActive(true);
-    }, 500);
-
-    // Phase 2: Auto-skip after 5 seconds
-    const autoSkipTimer = setTimeout(() => {
-      handleStart();
-    }, 5000);
-
-    // Cleanup
-    return () => {
-      clearTimeout(logoTimer);
-      clearTimeout(autoSkipTimer);
-    };
+    unlockAudioOnUserGesture();
+    const t = setInterval(() => setReady(isAudioReady()), 250);
+    return () => clearInterval(t);
   }, []);
 
   // Track play time while on title screen
@@ -49,14 +37,6 @@ export default function TitleScreen({ onStart }: { onStart?: () => void }) {
 
     return () => clearInterval(interval);
   }, []);
-
-  // Play startup jingle (placeholder for audio system)
-  useEffect(() => {
-    if (particlesActive) {
-      // TODO: Play startup jingle when audio system is implemented
-      console.log('🎵 Playing startup jingle...');
-    }
-  }, [particlesActive]);
 
   // Check for any achievement unlocks
   useEffect(() => {
@@ -130,7 +110,7 @@ export default function TitleScreen({ onStart }: { onStart?: () => void }) {
                 onClick={handleStart}
               >
                 <span className={`button-text ${isHovering ? 'shimmer' : ''}`}>
-                  {audioReady ? 'Press Start' : 'Click to Enable Audio'}
+                  {ready ? 'Press Start' : 'Click to Enable Audio'}
                 </span>
                 {isHovering && (
                   <div className="button-glow animate-pulse-glow" />
@@ -147,7 +127,7 @@ export default function TitleScreen({ onStart }: { onStart?: () => void }) {
           {/* Version info */}
           <div className="version-info animate-fade-in-delay-3">
             <span className="version-text">v1.0.0</span>
-            <span className="separator">•</span>
+            <span className="separator">â€¢</span>
             <span className="build-info">GLM Build Verified</span>
           </div>
         </GlassPanel>
@@ -530,3 +510,4 @@ export default function TitleScreen({ onStart }: { onStart?: () => void }) {
     </div>
   );
 }
+
