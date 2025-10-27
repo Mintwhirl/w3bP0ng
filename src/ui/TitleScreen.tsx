@@ -22,11 +22,20 @@ export default function TitleScreen({ onStart }: { onStart?: () => void }) {
   const [particlesActive, setParticlesActive] = useState(false);
 
   // Animation sequence
-  
+
   useEffect(() => {
     unlockAudioOnUserGesture();
     const t = setInterval(() => setReady(isAudioReady()), 250);
-    return () => clearInterval(t);
+
+    // Show the start button after the initial animation sequence
+    const timer = setTimeout(() => {
+      setShowButton(true);
+    }, 1500); // 1.5s delay to match the logo reveal animation
+
+    return () => {
+      clearInterval(t);
+      clearTimeout(timer);
+    };
   }, []);
 
   // Track play time while on title screen
