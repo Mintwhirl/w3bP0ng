@@ -78,6 +78,14 @@ function App() {
     return () => document.body.classList.remove(cls);
   }, [isGameMode]);
 
+  // Force repaint after hydration to correct viewport height
+  React.useEffect(() => {
+    const id = window.requestAnimationFrame(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, []);
+
   return (
     <div className={`App cosmic-bg ${isGameMode ? 'full-bleed' : ''}`}>
       <ModeTransition mode={currentMode}>
