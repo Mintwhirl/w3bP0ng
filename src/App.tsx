@@ -16,7 +16,7 @@ import RhythmMode from './modes/RhythmMode';
 import BattleRoyaleMode from './modes/BattleRoyaleMode';
 import LevelEditorMode from './modes/LevelEditorMode';
 import { startPerformanceMonitoring } from './utils/perfMonitor';
-import { setAudioTheme } from './audio/AudioEngine';
+import { setAudioTheme, isAudioReady } from './audio/AudioEngine';
 import './App.css';
 import './styles/glassmorphism.css';
 
@@ -44,12 +44,15 @@ function App() {
     // Start performance monitoring
     startPerformanceMonitoring();
 
-    // Set initial audio theme
-    setAudioTheme('main');
+    // Don't set audio theme on mount - wait for user interaction
+    // setAudioTheme('main');
   }, []);
 
   // Handle audio theme changes based on mode
   React.useEffect(() => {
+    // Only set audio theme after user has interacted with audio
+    if (!isAudioReady()) return;
+
     const themeMap: Record<GameMode, string> = {
       title: 'main',
       menu: 'main',
