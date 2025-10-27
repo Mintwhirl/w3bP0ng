@@ -909,3 +909,7 @@ canvas {
   transform: translateY(-2px);
   box-shadow: 0 8px 32px rgba(109, 40, 217, 0.6);
 }
+:root, html, body, #root {
+  height: 100%;
+  width: 100%;
+}
