@@ -615,3 +615,6 @@ export function updateAudioSettings(settings) {
 export function getAudioSettings() {
     return audioEngine.getSettings();
 }
+export function isAudioReady() {
+    return audioEngine.audioContext.state !== 'suspended';
+}
