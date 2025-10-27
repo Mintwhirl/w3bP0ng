@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
-
 let audioCtx: AudioContext | null = null;
+let unlockListenersAdded = false;
+let isUnlocked = false;
 
 export function getAudioContext(): AudioContext {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    console.log("[AudioEngine] AudioContext created");
+    console.log("[AudioEngine] Created AudioContext (suspended)");
   }
   return audioCtx;
 }
@@ -17,30 +17,29 @@ export async function ensureAudioStarted(): Promise<void> {
       await ctx.resume();
       console.log("[AudioEngine] AudioContext resumed");
     } catch (err) {
-      console.warn("[AudioEngine] resume() failed", err);
+      console.warn("[AudioEngine] resume() failed:", err);
     }
   }
 }
 
-export function useAudioInit() {
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    const unlock = async () => {
-      await ensureAudioStarted();
-      setReady(true);
-      document.removeEventListener("click", unlock);
-      document.removeEventListener("keydown", unlock);
-      document.removeEventListener("touchstart", unlock);
-    };
-    document.addEventListener("click", unlock);
-    document.addEventListener("keydown", unlock);
-    document.addEventListener("touchstart", unlock);
-    return () => {
-      document.removeEventListener("click", unlock);
-      document.removeEventListener("keydown", unlock);
-      document.removeEventListener("touchstart", unlock);
-    };
-  }, []);
-  return ready;
+export function unlockAudioOnUserGesture() {
+  if (isUnlocked || unlockListenersAdded) return;
+  unlockListenersAdded = true;
+
+  const unlock = async () => {
+    await ensureAudioStarted();
+    isUnlocked = true;
+    console.log("[AudioEngine] Audio unlocked by gesture");
+    document.removeEventListener("click", unlock);
+    document.removeEventListener("keydown", unlock);
+    document.removeEventListener("touchstart", unlock);
+  };
+
+  document.addEventListener("click", unlock, { once: true });
+  document.addEventListener("keydown", unlock, { once: true });
+  document.addEventListener("touchstart", unlock, { once: true });
 }
 
+export function isAudioReady(): boolean {
+  return isUnlocked;
+}
