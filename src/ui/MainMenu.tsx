@@ -79,6 +79,9 @@ export default function MainMenu() {
         ⚙️ Settings
       </button>
 
+      {/* About & Credits Modal */}
+      <AboutCredits isOpen={showAbout} onClose={toggleAbout} />
+
       {/* Footer */}
       <footer className="menu-footer">
         <p>
