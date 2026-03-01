@@ -269,6 +269,47 @@ export function damageBlock(block: Block): Block {
 }
 
 // ═══════════════════════════════════════════════════════════
+// SWAPPER BLOCK MECHANICS
+// ═══════════════════════════════════════════════════════════
+
+export function applySwapperEffect(ball: Ball, swapperColor: string): Ball {
+  // Different effects based on swapper color
+  switch (swapperColor) {
+    case '#ff6ec4': // Magenta swapper - Speed boost and size increase
+      return {
+        ...ball,
+        vx: ball.vx * 1.3,
+        vy: ball.vy * 1.3,
+        radius: Math.min(ball.radius * 1.2, 12), // Cap maximum size
+      };
+
+    case '#22d3ee': // Cyan swapper - Speed reduction and size decrease
+      return {
+        ...ball,
+        vx: ball.vx * 0.7,
+        vy: ball.vy * 0.7,
+        radius: Math.max(ball.radius * 0.8, 4), // Minimum size
+      };
+
+    default:
+      return ball; // No change if color not recognized
+  }
+}
+
+export function handleSwapperCollision(ball: Ball, block: Block): Ball {
+  if (block.type !== 'swapper' || !block.active) {
+    return ball;
+  }
+
+  // Apply the swapper effect based on the block's color
+  const swappedBall = applySwapperEffect(ball, block.color || '#ff6ec4');
+
+  // Create particle effect feedback (will be handled by renderer)
+  // Mark the block as hit but don't destroy it immediately
+  return swappedBall;
+}
+
+// ═══════════════════════════════════════════════════════════
 // PORTAL MECHANICS
 // ═══════════════════════════════════════════════════════════
 

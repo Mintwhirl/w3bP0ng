@@ -9,9 +9,9 @@ import userEvent from '@testing-library/user-event';
 import App from '../App';
 import { useGameStore } from '../hooks/useGameStore';
 
-// Mock PongGame component (heavy component, we just need to test routing)
-vi.mock('../components/PongGame', () => ({
-  default: () => <div data-testid="pong-game">Pong Game Component</div>
+// Mock ClassicMode component (heavy component, we just need to test routing)
+vi.mock('../modes/ClassicMode', () => ({
+  default: () => <div data-testid="pong-game"><h1>Web Pong</h1>Pong Game Component</div>
 }));
 
 describe('App Integration Tests', () => {

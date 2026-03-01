@@ -36,6 +36,7 @@ import {
   calculateStars,
   createInitialBall,
   createPaddle,
+  handleSwapperCollision,
 } from './physics-puzzle/PhysicsPuzzleEngine';
 import { loadPuzzleProgress, savePuzzleProgress } from '../utils/storage';
 import type { PuzzleGameState } from './physics-puzzle/types';
@@ -226,15 +227,25 @@ export function PhysicsPuzzleMode() {
         const blockHit = checkBlockCollision(ball, block);
 
         if (blockHit.collided && blockHit.normal) {
-          state.balls[index] = applyBlockBounce(ball, blockHit.normal);
-          const damagedBlock = damageBlock(block);
-          state.blocks[i] = damagedBlock;
+          // Handle swapper blocks first
+          if (block.type === 'swapper') {
+            state.balls[index] = handleSwapperCollision(ball, block);
+            // Apply bounce after swapper effect
+            state.balls[index] = applyBlockBounce(state.balls[index], blockHit.normal);
+            const damagedBlock = damageBlock(block);
+            state.blocks[i] = damagedBlock;
+          } else {
+            // Normal block handling
+            state.balls[index] = applyBlockBounce(ball, blockHit.normal);
+            const damagedBlock = damageBlock(block);
+            state.blocks[i] = damagedBlock;
 
-          // Add score
-          if (!damagedBlock.active) {
-            const points = block.type === 'target' ? 500 : 100;
-            state.score += points;
-            setDisplayScore(state.score);
+            // Add score for destroyed blocks
+            if (!damagedBlock.active) {
+              const points = block.type === 'target' ? 500 : 100;
+              state.score += points;
+              setDisplayScore(state.score);
+            }
           }
 
           break; // Only one collision per frame

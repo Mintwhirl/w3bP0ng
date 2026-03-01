@@ -7,7 +7,7 @@
 // BLOCK TYPES
 // ═══════════════════════════════════════════════════════════
 
-export type BlockType = 'normal' | 'tough' | 'explosive' | 'target' | 'immovable';
+export type BlockType = 'normal' | 'tough' | 'explosive' | 'target' | 'immovable' | 'swapper';
 
 export interface Block {
   x: number;           // X position (px)

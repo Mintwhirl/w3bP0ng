@@ -1303,10 +1303,10 @@ const PongGame = () => {
  */
 const ClassicMode = () => {
   return (
-    <>
+    <div>
       <h1>Web Pong</h1>
       <PongGame />
-    </>
+    </div>
   );
 };
 

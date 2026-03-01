@@ -43,3 +43,11 @@ export function unlockAudioOnUserGesture() {
 export function isAudioReady(): boolean {
   return isUnlocked;
 }
+
+/**
+ * Placeholder for setting the audio theme (music/ambience)
+ */
+export function setAudioTheme(themeId: string, crossfade: boolean = true) {
+  console.log(`[AudioEngine] Setting audio theme to: ${themeId} (crossfade: ${crossfade})`);
+  // TODO: Implement actual theme switching once music engine is integrated
+}

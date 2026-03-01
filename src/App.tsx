@@ -10,13 +10,13 @@ import TitleScreen from './ui/TitleScreen';
 import MainMenu from './ui/MainMenu';
 import SettingsPanel from './ui/SettingsPanel';
 import ModeTransition from './ui/ModeTransition';
-import ClassicMode from './modes/ClassicMode';
+import PongGame from './components/PongGame';
 import PhysicsPuzzleMode from './modes/PhysicsPuzzleMode';
 import RhythmMode from './modes/RhythmMode';
 import BattleRoyaleMode from './modes/BattleRoyaleMode';
 import LevelEditorMode from './modes/LevelEditorMode';
 import { startPerformanceMonitoring } from './utils/perfMonitor';
-import { setAudioTheme, isAudioReady } from './audio/AudioEngine';
+import { isAudioReady, setAudioTheme } from './audio/AudioEngine';
 import './App.css';
 import './styles/glassmorphism.css';
 
@@ -27,7 +27,7 @@ import './styles/glassmorphism.css';
 const MODE_COMPONENTS: Record<GameMode, React.ComponentType> = {
   title: TitleScreen,
   menu: MainMenu,
-  classic: ClassicMode,
+  classic: PongGame,
   puzzle: PhysicsPuzzleMode,
   rhythm: RhythmMode,
   'battle-royale': BattleRoyaleMode,
