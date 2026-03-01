@@ -15,3 +15,11 @@ sessions/sessions-state.json
 sessions/package.json
 sessions/transcripts/
 sessions/.archived/
+
+# Compiled JS files in src/ (we keep TS/TSX sources only)
+# This prevents committing build artifacts alongside source files
+src/**/*.js
+src/**/*.jsx
+
+# Keep source-only JS files (add exceptions here if needed)
+# !src/path/to/important.js
