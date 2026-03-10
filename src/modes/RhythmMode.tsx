@@ -51,10 +51,24 @@ export function RhythmMode() {
   const [highScore, setHighScore] = useState(0);
   const [audioUnlocked, setAudioUnlocked] = useState(isAudioReady());
 
-  const getCanvasSize = useCallback(() => ({
-    width: Math.min(1200, window.innerWidth - 40),
-    height: Math.min(800, window.innerHeight - 200),
-  }), []);
+  // Dimensions
+  const [canvasSize, setCanvasSize] = useState({ width: 1200, height: 800 });
+
+  const updateCanvasSize = useCallback(() => {
+    const width = Math.min(1200, window.innerWidth - 40);
+    const height = Math.min(800, window.innerHeight - 200);
+    setCanvasSize({ width, height });
+    
+    if (canvasRef.current) {
+      canvasRef.current.width = width;
+      canvasRef.current.height = height;
+    }
+    
+    if (gameStateRef.current) {
+      gameStateRef.current.canvas.width = width;
+      gameStateRef.current.canvas.height = height;
+    }
+  }, []);
 
   // Poll for audio unlock
   useEffect(() => {
@@ -76,105 +90,93 @@ export function RhythmMode() {
   }, [difficulty]);
 
   const initializeGame = useCallback(() => {
-    if (!canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const { width, height } = getCanvasSize();
-    canvas.width = width;
-    canvas.height = height;
-
+    updateCanvasSize();
     const track = createDefaultTrack(difficulty);
     beatSyncRef.current = new BeatSync(track.bpm, track.duration);
+    
+    const width = Math.min(1200, window.innerWidth - 40);
+    const height = Math.min(800, window.innerHeight - 200);
+    
     gameStateRef.current = createInitialRhythmState(width, height, track);
     
     setDisplayScore(0);
     setDisplayCombo(0);
     setLastHitRating(null);
-  }, [difficulty, getCanvasSize]);
+  }, [difficulty, updateCanvasSize]);
 
   // Handle Resize
   useEffect(() => {
-    const handleResize = () => {
-      if (canvasRef.current && gamePhase === 'playing') {
-        const { width, height } = getCanvasSize();
-        canvasRef.current.width = width;
-        canvasRef.current.height = height;
-        if (gameStateRef.current) {
-          gameStateRef.current.canvas.width = width;
-          gameStateRef.current.canvas.height = height;
-        }
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [gamePhase, getCanvasSize]);
+    window.addEventListener('resize', updateCanvasSize);
+    return () => window.removeEventListener('resize', updateCanvasSize);
+  }, [updateCanvasSize]);
 
+  // Ticker management
   useEffect(() => {
     if (gamePhase !== 'playing') return;
 
+    // Direct initialization
     initializeGame();
-    const id = `rhythm-loop-${Math.random().toString(36).substr(2, 9)}`;
     
-    // Slight delay to ensure initializeGame has populated the refs
-    const timer = setTimeout(() => {
-      ticker.register(id, (_currentTime, deltaTime) => {
-        if (!gameStateRef.current || !beatSyncRef.current || !canvasRef.current) return;
-        const state = gameStateRef.current;
-        const beatSync = beatSyncRef.current;
-        const canvas = canvasRef.current;
+    const tickerId = `rhythm-loop-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Register immediately
+    const unregister = ticker.register(tickerId, (_currentTime, deltaTime) => {
+      const state = gameStateRef.current;
+      const beatSync = beatSyncRef.current;
+      const canvas = canvasRef.current;
+      if (!state || !beatSync || !canvas) return;
 
-        // Update elapsed time
-        state.elapsedTime += deltaTime;
+      // Update elapsed time
+      state.elapsedTime += deltaTime;
 
-        const beatProgress = beatSync.getBeatProgress(state.elapsedTime);
-        const currentBeat = beatSync.getCurrentBeat(state.elapsedTime);
+      const beatProgress = beatSync.getBeatProgress(state.elapsedTime);
+      const currentBeat = beatSync.getCurrentBeat(state.elapsedTime);
 
-        // Controls
-        const upPressed = keysPressed.current.has('w') || keysPressed.current.has('arrowup');
-        const downPressed = keysPressed.current.has('s') || keysPressed.current.has('arrowdown');
-        state.paddle = updatePaddle(state.paddle, upPressed, downPressed, canvas.height, deltaTime / 16.67);
+      // Controls
+      const upPressed = keysPressed.current.has('w') || keysPressed.current.has('arrowup');
+      const downPressed = keysPressed.current.has('s') || keysPressed.current.has('arrowdown');
+      state.paddle = updatePaddle(state.paddle, upPressed, downPressed, canvas.height, deltaTime / 16.67);
 
-        // Physics
-        state.ball = updateBall(state.ball, deltaTime / 16.67);
-        state.ball = checkWallCollisions(state.ball, canvas.width, canvas.height);
+      // Physics
+      state.ball = updateBall(state.ball, deltaTime / 16.67);
+      state.ball = checkWallCollisions(state.ball, canvas.width, canvas.height);
 
-        // Hit processing
-        if (checkPaddleCollision(state.ball, state.paddle)) {
-          const accuracy = beatSync.checkHitTiming(state.elapsedTime, currentBeat);
-          const newState = processHit(state, accuracy);
-          newState.ball = applyPaddleBounce(newState.ball, newState.paddle);
-          gameStateRef.current = newState;
-          
-          setDisplayScore(newState.score);
-          setDisplayCombo(newState.combo);
-          setLastHitRating({ rating: accuracy.toUpperCase(), id: Date.now() });
-        }
+      // Hit processing
+      if (checkPaddleCollision(state.ball, state.paddle)) {
+        const accuracy = beatSync.checkHitTiming(state.elapsedTime, currentBeat);
+        const newState = processHit(state, accuracy);
+        newState.ball = applyPaddleBounce(newState.ball, newState.paddle);
+        gameStateRef.current = newState;
+        
+        setDisplayScore(newState.score);
+        setDisplayCombo(newState.combo);
+        setLastHitRating({ rating: accuracy.toUpperCase(), id: Date.now() });
+      }
 
-        // Miss processing
-        if (state.ball.x + state.ball.radius < 0) {
-          state.ball = resetBall(canvas.width, canvas.height);
-          state.combo = 0;
-          state.missedBeats = (state.missedBeats || 0) + 1;
-          setDisplayCombo(0);
-          setLastHitRating({ rating: 'MISS', id: Date.now() });
-        }
+      // Miss processing
+      if (state.ball.x + state.ball.radius < 0) {
+        state.ball = resetBall(canvas.width, canvas.height);
+        state.combo = 0;
+        state.missedBeats = (state.missedBeats || 0) + 1;
+        setDisplayCombo(0);
+        setLastHitRating({ rating: 'MISS', id: Date.now() });
+      }
 
-        // Track completion
-        if (state.elapsedTime >= state.track.duration * 1000) {
-          updateRhythmScore(state.track.id, state.score, state.combo);
-          checkAchievements();
-          setGamePhase('complete');
-          return;
-        }
+      // Track completion
+      if (state.elapsedTime >= state.track.duration * 1000) {
+        updateRhythmScore(state.track.id, state.score, state.combo);
+        checkAchievements();
+        setGamePhase('complete');
+        return;
+      }
 
-        // Render
-        const ctx = canvas.getContext('2d');
-        if (ctx) renderRhythmGame(ctx, state, beatProgress);
-      }, TickerGroup.GAME);
-    }, 50);
+      // Render
+      const ctx = canvas.getContext('2d');
+      if (ctx) renderRhythmGame(ctx, state, beatProgress);
+    }, TickerGroup.GAME);
 
     return () => {
-      clearTimeout(timer);
-      ticker.unregister(id);
+      unregister();
     };
   }, [gamePhase, initializeGame]);
 
@@ -182,7 +184,9 @@ export function RhythmMode() {
     const handleKeyDown = (e: KeyboardEvent) => {
       keysPressed.current.add(e.key.toLowerCase());
       if (e.key === 'Escape' && gamePhase === 'playing') setGamePhase('paused');
-      if (e.key === ' ' && gamePhase === 'menu' && audioUnlocked) setGamePhase('playing');
+      if (e.key === ' ' && gamePhase === 'menu' && audioUnlocked) {
+        setGamePhase('playing');
+      }
     };
     const handleKeyUp = (e: KeyboardEvent) => keysPressed.current.delete(e.key.toLowerCase());
     window.addEventListener('keydown', handleKeyDown);
@@ -192,6 +196,10 @@ export function RhythmMode() {
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, [gamePhase, audioUnlocked]);
+
+  const handleStart = () => {
+    setGamePhase('playing');
+  };
 
   const handleExit = () => { 
     ticker.resumeGroup(TickerGroup.GAME); 
@@ -209,12 +217,14 @@ export function RhythmMode() {
     <div className="rhythm-mode cosmic-bg full-bleed">
       <canvas 
         ref={canvasRef} 
+        width={canvasSize.width}
+        height={canvasSize.height}
         className="game-canvas"
         style={{ 
           display: gamePhase === 'playing' || gamePhase === 'paused' ? 'block' : 'none',
-          width: '100%',
-          height: '100%',
-          objectFit: 'contain'
+          boxShadow: '0 0 40px rgba(168, 85, 247, 0.2)',
+          border: '1px solid rgba(168, 85, 247, 0.3)',
+          borderRadius: '8px'
         }} 
       />
 
@@ -263,7 +273,7 @@ export function RhythmMode() {
             {!audioUnlocked ? (
               <p className="audio-warning">Please click anywhere to enable audio first</p>
             ) : (
-              <GlassButton variant="primary" onClick={() => setGamePhase('playing')} size="large">
+              <GlassButton variant="primary" onClick={handleStart} size="large">
                 START PERFORMANCE
               </GlassButton>
             )}
@@ -284,13 +294,20 @@ export function RhythmMode() {
             <div className="stat-row"><span>Max Combo</span><span className="val">×{gameStateRef.current.combo}</span></div>
           </div>
           <div className="menu-actions">
-            <GlassButton variant="primary" onClick={() => setGamePhase('playing')}>REPLAY</GlassButton>
+            <GlassButton variant="primary" onClick={handleStart}>REPLAY</GlassButton>
             <GlassButton onClick={handleExit}>EXIT</GlassButton>
           </div>
         </GlassPanel>
       )}
 
       <style>{`
+        .rhythm-mode {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100vw;
+          height: 100vh;
+        }
         .combo-container {
           position: absolute;
           left: 50%;
