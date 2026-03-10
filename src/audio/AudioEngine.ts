@@ -1,3 +1,5 @@
+import { musicEngine, type MusicTheme } from './MusicEngine';
+
 let audioCtx: AudioContext | null = null;
 let unlockListenersAdded = false;
 let isUnlocked = false;
@@ -10,16 +12,23 @@ export function getAudioContext(): AudioContext {
   return audioCtx;
 }
 
-export async function ensureAudioStarted(): Promise<void> {
+export function getAudioContextState(): AudioContextState {
+  return audioCtx?.state || 'suspended';
+}
+
+export async function ensureAudioStarted(): Promise<boolean> {
   const ctx = getAudioContext();
   if (ctx.state === "suspended") {
     try {
       await ctx.resume();
       console.log("[AudioEngine] AudioContext resumed");
+      return ctx.state === "running";
     } catch (err) {
       console.warn("[AudioEngine] resume() failed:", err);
+      return false;
     }
   }
+  return ctx.state === "running";
 }
 
 export function unlockAudioOnUserGesture() {
@@ -27,12 +36,14 @@ export function unlockAudioOnUserGesture() {
   unlockListenersAdded = true;
 
   const unlock = async () => {
-    await ensureAudioStarted();
-    isUnlocked = true;
-    console.log("[AudioEngine] Audio unlocked by gesture");
-    document.removeEventListener("click", unlock);
-    document.removeEventListener("keydown", unlock);
-    document.removeEventListener("touchstart", unlock);
+    const success = await ensureAudioStarted();
+    if (success) {
+      isUnlocked = true;
+      console.log("[AudioEngine] Audio unlocked by gesture");
+      document.removeEventListener("click", unlock);
+      document.removeEventListener("keydown", unlock);
+      document.removeEventListener("touchstart", unlock);
+    }
   };
 
   document.addEventListener("click", unlock, { once: true });
@@ -41,7 +52,7 @@ export function unlockAudioOnUserGesture() {
 }
 
 export function isAudioReady(): boolean {
-  return isUnlocked;
+  return isUnlocked && audioCtx?.state === "running";
 }
 
 export interface AudioSettings {
@@ -63,13 +74,35 @@ export function getAudioSettings(): AudioSettings {
 export function updateAudioSettings(settings: Partial<AudioSettings>): void {
   currentSettings = { ...currentSettings, ...settings };
   console.log("[AudioEngine] Audio settings updated:", currentSettings);
-  // Implementation for applying settings to music/sfx engines would go here
+  
+  if (currentSettings.musicEnabled) {
+    musicEngine.setVolume(currentSettings.masterVolume);
+  } else {
+    musicEngine.setVolume(0);
+  }
 }
 
 /**
- * Placeholder for setting the audio theme (music/ambience)
+ * Sets the audio theme (music/ambience)
  */
-export function setAudioTheme(themeId: string, crossfade: boolean = true) {
-  console.log(`[AudioEngine] Setting audio theme to: ${themeId} (crossfade: ${crossfade})`);
-  // TODO: Implement actual theme switching once music engine is integrated
+export function setAudioTheme(themeId: string, _crossfade: boolean = true, bpm?: number) {
+  console.log(`[AudioEngine] Setting audio theme to: ${themeId}`);
+  
+  if (!currentSettings.musicEnabled || !isAudioReady()) {
+    musicEngine.stop();
+    return;
+  }
+
+  // Map theme strings to MusicTheme type
+  const themeMap: Record<string, MusicTheme> = {
+    'main': 'main',
+    'classic': 'classic',
+    'puzzle': 'puzzle',
+    'rhythm': 'rhythm',
+    'battle': 'battle',
+    'editor': 'editor'
+  };
+
+  const theme = themeMap[themeId] || 'none';
+  musicEngine.setTheme(theme, bpm);
 }

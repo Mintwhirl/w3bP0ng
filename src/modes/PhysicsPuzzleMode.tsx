@@ -38,11 +38,13 @@ import {
   createPaddle,
   handleSwapperCollision,
 } from './physics-puzzle/PhysicsPuzzleEngine';
-import { loadSaveData, updatePuzzleProgress } from '../utils/saveManager';
+import { updatePuzzleProgress, loadSaveData } from '../utils/saveManager';
 import { checkAchievements } from '../core/achievements';
 import { ticker, TickerGroup } from '../engine/EngineTicker';
+import { setAudioTheme } from '../audio/AudioEngine';
 import type { PuzzleGameState } from './physics-puzzle/types';
 import '../styles/glassmorphism.css';
+
 
 type GamePhase = 'menu' | 'playing' | 'paused' | 'complete';
 type LevelSource = 'builtin' | 'custom';
@@ -91,6 +93,21 @@ export function PhysicsPuzzleMode() {
     setUnlockedLevels(saveData.puzzleProgress.unlockedLevels);
     setLevelStars(saveData.puzzleProgress.levelStars);
   }, []);
+
+  // Sync music with game phase
+  useEffect(() => {
+    if (gamePhase === 'playing') {
+      setAudioTheme('puzzle');
+    } else if (gamePhase === 'paused' || gamePhase === 'complete') {
+      setAudioTheme('none');
+    } else {
+      setAudioTheme('main');
+    }
+
+    return () => {
+      if (gamePhase === 'playing') setAudioTheme('none');
+    };
+  }, [gamePhase]);
 
   useEffect(() => {
     refreshProgress();

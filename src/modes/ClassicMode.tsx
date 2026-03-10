@@ -8,6 +8,8 @@ import { checkAchievements } from '../core/achievements';
 import { ticker, TickerGroup } from '../engine/EngineTicker';
 import { GameRenderer } from '../rendering/GameRenderer';
 import { AudioManager } from '../audio/AudioManager';
+import { isAudioReady, setAudioTheme } from '../audio/AudioEngine';
+import { LeaderboardSchema } from '../utils/storage';
 import { useTheme } from '../hooks/useTheme';
 import {
   computeAIMove,
@@ -503,13 +505,19 @@ const PongGame = () => {
       activatePowerUp(collidedPowerUp, player);
     }
 
-    // Update ball trail
+    // Update ball trail (optimized with fixed limit)
+    const MAX_TRAIL = 20;
     ball.trail.push({ x: ball.x, y: ball.y, size: Math.random() * 3 + 2, life: 20 });
-    ball.trail = ball.trail.filter((p) => {
+    if (ball.trail.length > MAX_TRAIL) {
+      ball.trail.shift();
+    }
+    
+    for (let i = 0; i < ball.trail.length; i++) {
+      const p = ball.trail[i];
       p.life--;
       p.size *= 0.95;
-      return p.life > 0;
-    });
+    }
+    ball.trail = ball.trail.filter(p => p.life > 0);
 
     // Wall collision using extracted module
     if (checkWallCollision(ball, canvas.height)) {
@@ -685,6 +693,12 @@ const PongGame = () => {
     }
 
     checkLevelUp();
+
+    // Update music BPM based on ball speed
+    const ballSpeed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+    // Base speed is around 5, map to 120 BPM. Every 1 unit of speed = +10 BPM
+    const targetBPM = Math.min(220, 120 + (ballSpeed - 5) * 10);
+    setAudioTheme('classic', false, targetBPM);
   }, [
     resetGame,
     updateScreenShake,
@@ -698,7 +712,10 @@ const PongGame = () => {
   const loadLeaderboard = useCallback(() => {
     try {
       const saved = localStorage.getItem('pong-leaderboard');
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      const result = LeaderboardSchema.safeParse(parsed);
+      return result.success ? result.data : [];
     } catch (error) {
       console.warn('Failed to load leaderboard:', error);
       return [];
@@ -967,6 +984,20 @@ const PongGame = () => {
 
     rendererRef.current.render(renderState);
   }, []);
+
+  // Sync music with game state
+  useEffect(() => {
+    if (!gameStarted) {
+      setAudioTheme('main');
+      return;
+    }
+
+    setAudioTheme('classic');
+    
+    return () => {
+      setAudioTheme('none');
+    };
+  }, [gameStarted]);
 
   // Start/stop game loop using centralized ticker
   useEffect(() => {

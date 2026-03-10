@@ -1,12 +1,12 @@
 /**
  * Main App Component
- * Routes between menu and game modes based on Zustand state
+ * Orchestrates game flow using a registry-based mode strategy
  * Implements smooth transitions following W3BP0NG liquid glass synthwave aesthetic
- * Optimized with React.lazy and Suspense for code splitting
+ * Optimized with centralized configuration and lazy loading
  */
 
-import React, { Suspense, lazy } from 'react';
-import { useGameStore } from './hooks/useGameStore';
+import React, { Suspense, useMemo } from 'react';
+import { useGameStore, type GameMode } from './hooks/useGameStore';
 import { usePWA } from './hooks/usePWA';
 import ModeTransition from './ui/ModeTransition';
 import SettingsPanel from './ui/SettingsPanel';
@@ -14,93 +14,66 @@ import LoadingScreen from './ui/LoadingScreen';
 import ErrorBoundary from './components/ErrorBoundary';
 import { GlassPanel, GlassButton } from './ui/GlassHUD';
 import { AchievementToast } from './ui/AchievementToast';
+import { AudioResumeBanner } from './ui/AudioResumeBanner';
 import { startPerformanceMonitoring } from './utils/perfMonitor';
-import { isAudioReady, setAudioTheme } from './audio/AudioEngine';
+import { isAudioReady, setAudioTheme, unlockAudioOnUserGesture } from './audio/AudioEngine';
+import { getModeConfig, type GameModeId } from './modes/ModeRegistry';
 
 import './App.css';
 import './styles/glassmorphism.css';
 
-// ═══════════════════════════════════════════════════════════
-// LAZY COMPONENTS (Code Splitting)
-// ═══════════════════════════════════════════════════════════
-
-const TitleLazy = lazy(() => import('./ui/TitleScreen'));
-const MenuLazy = lazy(() => import('./ui/MainMenu'));
-const ClassicLazy = lazy(() => import('./components/PongGame'));
-const PuzzleLazy = lazy(() => import('./modes/PhysicsPuzzleMode'));
-const RhythmLazy = lazy(() => import('./modes/RhythmMode'));
-const BattleLazy = lazy(() => import('./modes/BattleRoyaleMode'));
-const EditorLazy = lazy(() => import('./modes/LevelEditorMode'));
-
 function App() {
-  const currentMode = useGameStore((state) => state.currentMode);
+  const currentModeId = useGameStore((state) => state.currentMode) as GameModeId;
   const setMode = useGameStore((state) => state.setMode);
   const { isInstallable, isOffline, isServiceWorkerUpdated, installPWA, reloadPage } = usePWA();
+
+  // Resolve current mode configuration from registry
+  const modeConfig = useMemo(() => getModeConfig(currentModeId), [currentModeId]);
 
   // Initialize systems on mount
   React.useEffect(() => {
     startPerformanceMonitoring();
+    unlockAudioOnUserGesture();
   }, []);
 
-  // Handle audio theme changes
+  // Sync audio theme with current mode
   React.useEffect(() => {
     if (!isAudioReady()) return;
+    setAudioTheme(modeConfig.audioTheme, false);
+  }, [modeConfig.audioTheme]);
 
-    const themeMap: Record<string, string> = {
-      title: 'main',
-      menu: 'main',
-      classic: 'classic',
-      puzzle: 'puzzle',
-      rhythm: 'rhythm',
-      'battle-royale': 'battle',
-      editor: 'editor',
-    };
-
-    const theme = themeMap[currentMode];
-    if (theme) {
-      setAudioTheme(theme, false);
-    }
-  }, [currentMode]);
-
-  const isGameMode = currentMode !== 'title' && currentMode !== 'menu';
-  
+  // Manage body classes for global styling
   React.useEffect(() => {
-    const cls = 'game-mode';
-    if (isGameMode) {
-      document.body.classList.add(cls);
-    } else {
-      document.body.classList.remove(cls);
-    }
-    return () => document.body.classList.remove(cls);
-  }, [isGameMode]);
+    const gameModeCls = 'game-mode';
+    const hcCls = 'high-contrast';
 
-  const renderMode = () => {
-    switch (currentMode) {
-      case 'title':
-        return <TitleLazy onStart={() => setMode('menu')} />;
-      case 'menu':
-        return <MenuLazy />;
-      case 'classic':
-        return <ClassicLazy />;
-      case 'puzzle':
-        return <PuzzleLazy />;
-      case 'rhythm':
-        return <RhythmLazy />;
-      case 'battle-royale':
-        return <BattleLazy />;
-      case 'editor':
-        return <EditorLazy />;
-      default:
-        return <MenuLazy />;
+    if (modeConfig.isGame) {
+      document.body.classList.add(gameModeCls);
+    } else {
+      document.body.classList.remove(gameModeCls);
     }
-  };
+
+    if (currentModeId === 'high-contrast' || (useGameStore.getState().currentTheme === 'high-contrast')) {
+      document.body.classList.add(hcCls);
+    } else {
+      document.body.classList.remove(hcCls);
+    }
+
+    return () => {
+      document.body.classList.remove(gameModeCls);
+      document.body.classList.remove(hcCls);
+    };
+  }, [modeConfig.isGame, currentModeId, useGameStore((state) => state.currentTheme)]);
+
+  const ModeComponent = modeConfig.component;
 
   return (
     <ErrorBoundary>
-      <div className={`App cosmic-bg ${isGameMode ? 'full-bleed' : ''}`}>
-        {/* PWA Notifications */}
+      <div className={`App cosmic-bg ${modeConfig.isGame ? 'full-bleed' : ''}`}>
+        
+        {/* PWA Notifications & Utility Banners */}
         <div className="pwa-notifications">
-          {isInstallable && currentMode === 'menu' && (
+          {isInstallable && currentModeId === 'menu' && (
             <GlassPanel variant="subtle" neonAccent="cyan" className="pwa-banner animate-slideUp">
               <div className="pwa-content">
                 <span className="pwa-icon">🚀</span>
@@ -127,14 +100,20 @@ function App() {
           )}
         </div>
 
-        {/* Global Achievement UI */}
+        {/* Global HUD Layers */}
         <AchievementToast />
+        <AudioResumeBanner />
 
+        {/* Dynamic Mode Content */}
         <Suspense fallback={<LoadingScreen />}>
-          <ModeTransition mode={currentMode}>
-            {renderMode()}
+          <ModeTransition mode={currentModeId}>
+            <ModeComponent 
+              onStart={currentModeId === 'title' ? () => setMode('menu') : undefined} 
+            />
           </ModeTransition>
         </Suspense>
+
+        {/* Global Settings & Modals */}
         <SettingsPanel />
       </div>
 

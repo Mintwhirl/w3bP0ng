@@ -24,6 +24,7 @@ import {
 import { updateBattleRoyaleStats, loadSaveData } from '../utils/saveManager';
 import { checkAchievements } from '../core/achievements';
 import { ticker, TickerGroup } from '../engine/EngineTicker';
+import { setAudioTheme } from '../audio/AudioEngine';
 import type { BattleRoyaleState } from './battle-royale/types';
 import '../styles/glassmorphism.css';
 
@@ -48,6 +49,21 @@ export function BattleRoyaleMode() {
     const data = loadSaveData();
     setBestKillStreak(data.battleRoyaleProgress.bestKillStreak);
   }, []);
+
+  // Sync music with game phase
+  useEffect(() => {
+    if (gamePhase === 'playing') {
+      setAudioTheme('battle', false, currentBPM);
+    } else if (gamePhase === 'paused' || gamePhase === 'complete') {
+      setAudioTheme('none');
+    } else {
+      setAudioTheme('main');
+    }
+
+    return () => {
+      if (gamePhase === 'playing') setAudioTheme('none');
+    };
+  }, [gamePhase, currentBPM]);
 
   const initializeGame = useCallback(() => {
     if (!canvasRef.current) return;

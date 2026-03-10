@@ -28,7 +28,7 @@ import {
 import { ticker, TickerGroup } from '../engine/EngineTicker';
 import { updateRhythmScore, loadSaveData } from '../utils/saveManager';
 import { checkAchievements } from '../core/achievements';
-import { isAudioReady } from '../audio/AudioEngine';
+import { isAudioReady, setAudioTheme } from '../audio/AudioEngine';
 import { AudioManager } from '../audio/AudioManager';
 import type { RhythmGameState } from './rhythm-mode/types';
 import '../styles/glassmorphism.css';
@@ -79,6 +79,24 @@ export function RhythmMode() {
     const currentTrack = createDefaultTrack(difficulty);
     setHighScore(data.rhythmProgress.highScores[currentTrack.id] || 0);
   }, [difficulty]);
+
+  // Sync music with game phase
+  useEffect(() => {
+    if (!audioUnlocked) return;
+    
+    if (gamePhase === 'playing') {
+      const track = createDefaultTrack(difficulty);
+      setAudioTheme('rhythm', false, track.bpm);
+    } else if (gamePhase === 'paused' || gamePhase === 'complete') {
+      setAudioTheme('none');
+    } else {
+      setAudioTheme('main');
+    }
+
+    return () => {
+      if (gamePhase === 'playing') setAudioTheme('none');
+    };
+  }, [gamePhase, difficulty, audioUnlocked]);
 
   const updateCanvasSize = useCallback(() => {
     const container = containerRef.current;
