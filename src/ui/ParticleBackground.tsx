@@ -1,9 +1,11 @@
 /**
  * Particle Background Canvas
  * Subtle particle field for depth - low CPU usage
+ * Ticker-optimized and memoized
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, memo } from 'react';
+import { ticker, TickerGroup } from '../engine/EngineTicker';
 
 interface Particle {
   x: number;
@@ -12,42 +14,48 @@ interface Particle {
   vx: number;
   vy: number;
   alpha: number;
+  style: string;
 }
 
-export function ParticleBackground() {
+export const ParticleBackground = memo(function ParticleBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    // Skip in tests
+    if (import.meta.env.MODE === 'test') return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
     let width = (canvas.width = canvas.clientWidth);
     let height = (canvas.height = canvas.clientHeight);
 
-    // PARTICLE_DENSITY controls particle count
-    // Lower value = more particles, higher = fewer
-    // Adjust this to tune performance
-    const PARTICLE_DENSITY = 50000;
-    const count = Math.max(8, Math.min(100, Math.round((width * height) / PARTICLE_DENSITY)));
+    const PARTICLE_DENSITY = 80000;
+    const count = Math.max(8, Math.min(50, Math.round((width * height) / PARTICLE_DENSITY)));
 
-    const particles: Particle[] = Array.from({ length: count }, () => ({
-      x: Math.random() * width,
-      y: Math.random() * height,
-      r: Math.random() * 1.2 + 0.4,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
-      alpha: 0.05 + Math.random() * 0.15,
-    }));
+    const particles: Particle[] = Array.from({ length: count }, () => {
+      const alpha = 0.05 + Math.random() * 0.15;
+      return {
+        x: Math.random() * width,
+        y: Math.random() * height,
+        r: Math.random() * 1.2 + 0.4,
+        vx: (Math.random() - 0.5) * 0.2,
+        vy: (Math.random() - 0.5) * 0.2,
+        alpha,
+        style: `rgba(255, 255, 255, ${alpha.toFixed(2)})`,
+      };
+    });
 
-    let animationFrameId: number;
+    const tickerId = `particles-${Math.random().toString(36).substr(2, 9)}`;
 
     const draw = () => {
       ctx.clearRect(0, 0, width, height);
 
-      for (const p of particles) {
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
         // Update position
         p.x += p.vx;
         p.y += p.vy;
@@ -60,15 +68,11 @@ export function ParticleBackground() {
 
         // Draw particle
         ctx.beginPath();
-        ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+        ctx.fillStyle = p.style;
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fill();
       }
-
-      animationFrameId = requestAnimationFrame(draw);
     };
-
-    draw();
 
     const handleResize = () => {
       width = canvas.width = canvas.clientWidth;
@@ -77,10 +81,10 @@ export function ParticleBackground() {
 
     window.addEventListener('resize', handleResize);
 
+    const unregister = ticker.register(tickerId, draw, TickerGroup.BACKGROUND);
+
     return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
+      unregister();
       window.removeEventListener('resize', handleResize);
     };
   }, []);
@@ -92,4 +96,4 @@ export function ParticleBackground() {
       aria-hidden="true"
     />
   );
-}
+});

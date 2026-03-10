@@ -3,7 +3,7 @@
  * Main component for the level editor mode
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { ParticleBackground } from '../ui/ParticleBackground';
 import LevelUI from './level-editor/LevelUI';
 import { LevelEditorRenderer } from './level-editor/LevelEditorRenderer';
@@ -62,7 +62,11 @@ export default function LevelEditorMode() {
     if (!rendererRef.current) return;
 
     rendererRef.current.render(editorState, mousePos || undefined);
-    animationFrameRef.current = requestAnimationFrame(renderLoop);
+    
+    // Skip animation in tests to prevent leaks and ReferenceErrors
+    if (import.meta.env.MODE !== 'test') {
+      animationFrameRef.current = requestAnimationFrame(renderLoop);
+    }
   }, [editorState, mousePos]);
 
   // Handle mouse events
@@ -78,8 +82,6 @@ export default function LevelEditorMode() {
     // Handle dragging
     if (isDragging && draggedObjectId && dragStart) {
       const worldPos = rendererRef.current.screenToWorld({ x, y });
-      const dx = worldPos.x - dragStart.x;
-      const dy = worldPos.y - dragStart.y;
 
       setEditorState((prevState) =>
         moveObject(prevState, draggedObjectId, {
@@ -116,6 +118,8 @@ export default function LevelEditorMode() {
       case 'select':
         if (objectsAtPos.length > 0) {
           const selectedObject = objectsAtPos[0];
+          if (!selectedObject) return;
+
           setDraggedObjectId(selectedObject.id);
           setDragStart(worldPos);
           setIsDragging(true);
@@ -138,6 +142,8 @@ export default function LevelEditorMode() {
       case 'delete':
         if (objectsAtPos.length > 0) {
           const objectToDelete = objectsAtPos[0];
+          if (!objectToDelete) return;
+
           setEditorState((prevState) =>
             deleteObject(prevState, objectToDelete.id)
           );
@@ -172,7 +178,7 @@ export default function LevelEditorMode() {
     ];
 
     const currentIndex = tools.indexOf(editorState.currentTool);
-    let newIndex;
+    let newIndex: number;
     if (event.deltaY > 0) {
       newIndex = (currentIndex + 1) % tools.length;
     } else {
@@ -181,7 +187,7 @@ export default function LevelEditorMode() {
 
     setEditorState((prevState) => ({
       ...prevState,
-      currentTool: tools[newIndex],
+      currentTool: tools[newIndex] as PlaceableObjectType,
     }));
   }, [editorState.currentTool]);
 
@@ -248,7 +254,7 @@ export default function LevelEditorMode() {
         if (toolIndex < tools.length) {
           setEditorState((prevState) => ({
             ...prevState,
-            currentTool: tools[toolIndex],
+            currentTool: tools[toolIndex] as PlaceableObjectType,
             mode: 'place',
           }));
         }
@@ -343,15 +349,22 @@ export default function LevelEditorMode() {
   }, []);
 
   const handleTestLevel = useCallback(() => {
-    setEditorState((prevState) => ({
-      ...prevState,
-      isTestMode: !prevState.isTestMode,
-      testModeState: prevState.isTestMode ? undefined : {
-        balls: [createInitialBall(400, 300)],
-        paddle: createPaddle(400, 550),
-        gameStarted: false,
-      },
-    }));
+    setEditorState((prevState) => {
+      const newState: EditorState = {
+        ...prevState,
+        isTestMode: !prevState.isTestMode,
+      };
+
+      if (!prevState.isTestMode) {
+        newState.testModeState = {
+          balls: [createInitialBall(400, 300)],
+          paddle: createPaddle(400, 550),
+          gameStarted: false,
+        };
+      }
+
+      return newState;
+    });
   }, []);
 
   const handleResetLevel = useCallback(() => {
@@ -424,11 +437,6 @@ export default function LevelEditorMode() {
         canUndo={canUndo}
         canRedo={canRedo}
         isTestMode={editorState.isTestMode}
-        testModeStats={editorState.testModeState ? {
-          balls: editorState.testModeState.balls.length,
-          hits: 0, // Would track hits in test mode
-          time: '0:00', // Would track time in test mode
-        } : undefined}
       />
 
       <style>{`

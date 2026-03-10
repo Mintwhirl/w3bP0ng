@@ -43,6 +43,28 @@ const getStorageKey = (mode: GameMode, type: string): string => {
 };
 
 /**
+ * Helper to handle QuotaExceededError
+ */
+function handleStorageError(error: unknown, context: string): void {
+  if (error instanceof Error && 
+      (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+    console.error(`CRITICAL: localStorage quota exceeded during ${context}! Cleanup required.`);
+    // Try to clear some less important data
+    try {
+      // Clear all leaderboards as an emergency measure
+      const keys = Object.keys(localStorage);
+      const leaderboardKeys = keys.filter(key => key.includes('-leaderboard'));
+      leaderboardKeys.forEach(key => localStorage.removeItem(key));
+      console.warn('Emergency Cleanup: Removed all leaderboards to free space.');
+    } catch (e) {
+      console.error('Emergency cleanup failed:', e);
+    }
+  } else {
+    console.error(`Failed ${context}:`, error);
+  }
+}
+
+/**
  * Leaderboard Management
  */
 
@@ -51,7 +73,7 @@ export function saveLeaderboard(mode: GameMode, scores: Score[]): void {
     const key = getStorageKey(mode, 'leaderboard');
     localStorage.setItem(key, JSON.stringify(scores));
   } catch (error) {
-    console.error(`Failed to save leaderboard for ${mode}:`, error);
+    handleStorageError(error, `saving leaderboard for ${mode}`);
   }
 }
 
@@ -87,7 +109,7 @@ export function savePuzzleProgress(progress: PuzzleProgress): void {
     const key = getStorageKey('puzzle', 'progress');
     localStorage.setItem(key, JSON.stringify(progress));
   } catch (error) {
-    console.error('Failed to save puzzle progress:', error);
+    handleStorageError(error, 'saving puzzle progress');
   }
 }
 
@@ -130,7 +152,7 @@ export function saveLevel(level: SavedLevel): void {
     const key = getStorageKey('editor', 'levels');
     localStorage.setItem(key, JSON.stringify(levels));
   } catch (error) {
-    console.error('Failed to save level:', error);
+    handleStorageError(error, 'saving custom level');
   }
 }
 
@@ -153,7 +175,7 @@ export function deleteLevel(levelId: string): void {
     const key = getStorageKey('editor', 'levels');
     localStorage.setItem(key, JSON.stringify(filtered));
   } catch (error) {
-    console.error('Failed to delete level:', error);
+    handleStorageError(error, 'deleting level');
   }
 }
 
@@ -171,7 +193,7 @@ export function saveSettings(settings: GameSettings): void {
   try {
     localStorage.setItem('webpong-settings', JSON.stringify(settings));
   } catch (error) {
-    console.error('Failed to save settings:', error);
+    handleStorageError(error, 'saving settings');
   }
 }
 

@@ -96,7 +96,7 @@ export class KeyboardShortcutManager {
     shortcut.action();
   }
 
-  private handleKeyUp(event: KeyboardEvent): void {
+  private handleKeyUp(_event: KeyboardEvent): void {
     // Handle key release if needed for any shortcuts
   }
 
@@ -127,7 +127,7 @@ export class KeyboardShortcutManager {
   private matchesShortcut(shortcut: KeyboardShortcut, key: string, modifiers: string[]): boolean {
     if (shortcut.key !== key) return false;
 
-    const shortcutModifiers = shortcut.modifiers || [];
+    const shortcutModifiers = (shortcut.modifiers || []) as string[];
     if (shortcutModifiers.length !== modifiers.length) return false;
 
     return modifiers.every(mod => shortcutModifiers.includes(mod));
@@ -143,7 +143,7 @@ export class KeyboardShortcutManager {
   // ═════════════════════════════════════════════════════════
 
   private registerDefaultShortcuts(): void {
-    const { setMode, returnToMenu, toggleSettingsPanel } = useGameStore.getState();
+    const { returnToMenu, toggleSettingsPanel } = useGameStore.getState();
 
     // Global shortcuts (work in all modes)
     this.registerShortcut({

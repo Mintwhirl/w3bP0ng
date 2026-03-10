@@ -5,13 +5,10 @@
 
 import type {
   Block,
-  BlockType,
   Portal,
-  PortalColor,
   BouncePad,
   GravityZone,
   Level,
-  LevelGoal,
   Ball,
   Paddle,
 } from '../physics-puzzle/types';
@@ -168,7 +165,7 @@ export type EditorAction =
 export interface CustomLevel {
   metadata: LevelMetadata;
   levelData: Level;
-  editorState: EditorState;     // For continuing editing
+  editorState?: EditorState;     // For continuing editing
 }
 
 export interface LevelStorage {

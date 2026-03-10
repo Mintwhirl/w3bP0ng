@@ -12,11 +12,19 @@ interface ModeTransitionProps {
   duration?: number;
 }
 
-export function ModeTransition({ children, mode, duration = 400 }: ModeTransitionProps) {
-  const [opacity, setOpacity] = useState(1);
+const isTest = import.meta.env.MODE === 'test';
+
+export function ModeTransition({ children, mode: _mode, duration = 400 }: ModeTransitionProps) {
+  // In tests, we don't want any delay or extra state updates for content
+  const [opacity, setOpacity] = useState(isTest ? 1 : 1);
   const [currentContent, setCurrentContent] = useState(children);
 
   useEffect(() => {
+    if (isTest) {
+      setCurrentContent(children);
+      return;
+    }
+
     // Simple transition: fade out, change content, fade in
     setOpacity(0);
 
@@ -27,6 +35,10 @@ export function ModeTransition({ children, mode, duration = 400 }: ModeTransitio
 
     return () => clearTimeout(timer);
   }, [children, duration]);
+
+  if (isTest) {
+    return <div className="mode-transition-wrapper-test">{children}</div>;
+  }
 
   return (
     <div

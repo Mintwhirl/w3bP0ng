@@ -5,14 +5,11 @@
 
 import type {
   EditorState,
-  EditMode,
   PlaceableObjectType,
   PlacedObject,
   EditorTool,
-  LevelMetadata,
   CustomLevel,
   ValidationResult,
-  EditorAction,
 } from './types';
 import type {
   Level,
@@ -21,6 +18,7 @@ import type {
   BouncePad,
   GravityZone,
   Paddle,
+  LevelGoal,
 } from '../physics-puzzle/types';
 import {
   EDITOR_TOOLS,
@@ -41,7 +39,7 @@ import {
 export function createInitialEditorState(canvasWidth: number, canvasHeight: number): EditorState {
   const now = Date.now();
 
-  return {
+  const initialState: EditorState = {
     mode: 'place',
     currentTool: 'block-normal',
     levelMetadata: {
@@ -58,6 +56,14 @@ export function createInitialEditorState(canvasWidth: number, canvasHeight: numb
     history: {
       states: [],
       currentIndex: -1,
+    },
+  };
+
+  return {
+    ...initialState,
+    history: {
+      states: [initialState],
+      currentIndex: 0,
     },
   };
 }
@@ -458,7 +464,7 @@ export function validateLevel(level: CustomLevel): ValidationResult {
   }
 
   // Check if paddle is in reasonable position
-  if (levelData.paddle) {
+  if (levelData.paddle && levelData.canvas) {
     if (levelData.paddle.y < levelData.canvas.height * 0.5) {
       warnings.push('Paddle is positioned high on the screen - players may expect it at the bottom');
     }
@@ -466,12 +472,14 @@ export function validateLevel(level: CustomLevel): ValidationResult {
 
   // Check if objects are within canvas bounds
   const canvas = levelData.canvas;
-  levelData.blocks.forEach((block, index) => {
-    if (block.x < 0 || block.x + block.width > canvas.width ||
-        block.y < 0 || block.y + block.height > canvas.height) {
-      errors.push(`Block ${index + 1} is outside canvas bounds`);
-    }
-  });
+  if (canvas) {
+    levelData.blocks.forEach((block, index) => {
+      if (block.x < 0 || block.x + block.width > canvas.width ||
+          block.y < 0 || block.y + block.height > canvas.height) {
+        errors.push(`Block ${index + 1} is outside canvas bounds`);
+      }
+    });
+  }
 
   return {
     valid: errors.length === 0,
@@ -489,7 +497,6 @@ export function editorStateToLevel(editorState: EditorState): Level {
   const portals: Portal[] = [];
   const bouncePads: BouncePad[] = [];
   const gravityZones: GravityZone[] = [];
-  let paddle: Paddle | undefined;
 
   // Group objects by type
   editorState.placedObjects.forEach(obj => {
@@ -516,7 +523,7 @@ export function editorStateToLevel(editorState: EditorState): Level {
         break;
 
       case 'paddle':
-        paddle = obj.data as Paddle;
+        // Paddle data is stored separately in editorState
         break;
     }
   });
@@ -533,7 +540,8 @@ export function editorStateToLevel(editorState: EditorState): Level {
   });
 
   // Determine goal based on placed objects
-  const goal: any = {
+  const targetBlocks = blocks.filter(b => b.type === 'target');
+  const goal: LevelGoal = {
     type: targetBlocks.length > 0 ? 'destroy_targets' : 'destroy_all',
   };
 
@@ -591,8 +599,19 @@ export function undo(state: EditorState): EditorState {
   }
 
   const newIndex = state.history.currentIndex - 1;
+  const previousState = state.history.states[newIndex];
+  if (!previousState) return state;
+
   return {
-    ...state.history.states[newIndex],
+    ...previousState,
+    mode: previousState.mode,
+    currentTool: previousState.currentTool,
+    levelMetadata: previousState.levelMetadata,
+    placedObjects: previousState.placedObjects,
+    grid: previousState.grid,
+    camera: previousState.camera,
+    isTestMode: previousState.isTestMode,
+    canvas: previousState.canvas,
     history: {
       ...state.history,
       currentIndex: newIndex,
@@ -606,8 +625,19 @@ export function redo(state: EditorState): EditorState {
   }
 
   const newIndex = state.history.currentIndex + 1;
+  const nextState = state.history.states[newIndex];
+  if (!nextState) return state;
+
   return {
-    ...state.history.states[newIndex],
+    ...nextState,
+    mode: nextState.mode,
+    currentTool: nextState.currentTool,
+    levelMetadata: nextState.levelMetadata,
+    placedObjects: nextState.placedObjects,
+    grid: nextState.grid,
+    camera: nextState.camera,
+    isTestMode: nextState.isTestMode,
+    canvas: nextState.canvas,
     history: {
       ...state.history,
       currentIndex: newIndex,

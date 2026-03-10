@@ -44,6 +44,28 @@ export function isAudioReady(): boolean {
   return isUnlocked;
 }
 
+export interface AudioSettings {
+  soundEnabled: boolean;
+  musicEnabled: boolean;
+  masterVolume: number;
+}
+
+let currentSettings: AudioSettings = {
+  soundEnabled: true,
+  musicEnabled: true,
+  masterVolume: 0.7,
+};
+
+export function getAudioSettings(): AudioSettings {
+  return { ...currentSettings };
+}
+
+export function updateAudioSettings(settings: Partial<AudioSettings>): void {
+  currentSettings = { ...currentSettings, ...settings };
+  console.log("[AudioEngine] Audio settings updated:", currentSettings);
+  // Implementation for applying settings to music/sfx engines would go here
+}
+
 /**
  * Placeholder for setting the audio theme (music/ambience)
  */

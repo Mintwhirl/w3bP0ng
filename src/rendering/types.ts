@@ -115,6 +115,46 @@ export const DEFAULT_THEME: Theme = {
 };
 
 /**
+ * High Contrast Theme
+ * WCAG AAA compliant colors for maximum accessibility
+ */
+export const HIGH_CONTRAST_THEME: Theme = {
+  id: 'high-contrast',
+  name: 'High Contrast (AAA)',
+  background: {
+    gradient: [
+      { position: 0, hue: 0, saturation: 0, lightness: 0 },
+      { position: 1, hue: 0, saturation: 0, lightness: 0 },
+    ],
+    animated: false,
+    animationSpeed: 0,
+  },
+  paddle: {
+    left: { color: '#ffffff', shadowColor: 'transparent' },
+    right: { color: '#ffffff', shadowColor: 'transparent' },
+  },
+  ball: {
+    color: '#ffffff',
+    shadowColor: 'transparent',
+    trailColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  centerLine: {
+    color: '#ffffff',
+    shadowColor: 'transparent',
+  },
+  score: {
+    color: '#ffffff',
+    shadowColor: 'transparent',
+  },
+  powerUp: {
+    bigPaddle: '#ffffff',
+    fastBall: '#ffffff',
+    multiBall: '#ffffff',
+    shield: '#ffffff',
+  },
+};
+
+/**
  * Arctic Glass theme
  */
 export const ARCTIC_GLASS_THEME: Theme = {
@@ -155,7 +195,7 @@ export const ARCTIC_GLASS_THEME: Theme = {
 };
 
 /**
- * Puzzle Mode Theme - Logic & Thinking (Green/Amber)
+ * Puzzle Mode Theme
  */
 export const PUZZLE_THEME: Theme = {
   id: 'puzzle-logic',
@@ -195,7 +235,7 @@ export const PUZZLE_THEME: Theme = {
 };
 
 /**
- * Rhythm Mode Theme - Music & Energy (Neon Blue/Cyan)
+ * Rhythm Mode Theme
  */
 export const RHYTHM_THEME: Theme = {
   id: 'rhythm-beats',
@@ -207,7 +247,7 @@ export const RHYTHM_THEME: Theme = {
       { position: 1, hue: 190, saturation: 75, lightness: 12 },
     ],
     animated: true,
-    animationSpeed: 1.5, // Faster for rhythm energy
+    animationSpeed: 1.5,
   },
   paddle: {
     left: { color: '#06b6d4', shadowColor: 'rgba(6, 182, 212, 0.4)' },
@@ -235,7 +275,7 @@ export const RHYTHM_THEME: Theme = {
 };
 
 /**
- * Battle Royale Theme - Intensity & Combat (Red/Orange)
+ * Battle Royale Theme
  */
 export const BATTLE_THEME: Theme = {
   id: 'battle-intensity',
@@ -275,7 +315,7 @@ export const BATTLE_THEME: Theme = {
 };
 
 /**
- * Editor Mode Theme - Professional & Tools (Cool Gray/Blue)
+ * Editor Mode Theme
  */
 export const EDITOR_THEME: Theme = {
   id: 'editor-pro',
@@ -287,7 +327,7 @@ export const EDITOR_THEME: Theme = {
       { position: 1, hue: 200, saturation: 25, lightness: 14 },
     ],
     animated: true,
-    animationSpeed: 0.5, // Slower for professional feel
+    animationSpeed: 0.5,
   },
   paddle: {
     left: { color: '#64748b', shadowColor: 'rgba(100, 116, 139, 0.4)' },
@@ -324,11 +364,11 @@ export const THEMES: Record<string, Theme> = {
   'rhythm-beats': RHYTHM_THEME,
   'battle-intensity': BATTLE_THEME,
   'editor-pro': EDITOR_THEME,
+  'high-contrast': HIGH_CONTRAST_THEME,
 };
 
 /**
  * Mode-specific theme mapping
- * Maps game modes to their designated themes
  */
 export const MODE_THEMES: Record<string, string> = {
   'menu': 'synthwave-sunset',
@@ -338,11 +378,6 @@ export const MODE_THEMES: Record<string, string> = {
   'battle-royale': 'battle-intensity',
   'editor': 'editor-pro',
 };
-
-/**
- * WCAG AA Contrast Ratio Utilities
- * Ensures accessibility compliance for all themes
- */
 
 /**
  * Convert hex color to RGB values
@@ -360,8 +395,7 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
 }
 
 /**
- * Calculate relative luminance for a color
- * Formula from WCAG 2.1 specification
+ * Relative luminance formula
  */
 function getLuminance(r: number, g: number, b: number): number {
   const [rs, gs, bs] = [r, g, b].map((c) => {
@@ -372,29 +406,21 @@ function getLuminance(r: number, g: number, b: number): number {
 }
 
 /**
- * Calculate contrast ratio between two colors
- * Returns value between 1 (no contrast) and 21 (maximum contrast)
+ * Calculate contrast ratio
  */
 export function getContrastRatio(color1: string, color2: string): number {
   const rgb1 = hexToRgb(color1);
   const rgb2 = hexToRgb(color2);
-
-  if (!rgb1 || !rgb2) {
-    return 1; // Invalid colors, assume worst case
-  }
-
+  if (!rgb1 || !rgb2) return 1;
   const lum1 = getLuminance(rgb1.r, rgb1.g, rgb1.b);
   const lum2 = getLuminance(rgb2.r, rgb2.g, rgb2.b);
-
   const lighter = Math.max(lum1, lum2);
   const darker = Math.min(lum1, lum2);
-
   return (lighter + 0.05) / (darker + 0.05);
 }
 
 /**
- * Check if contrast ratio meets WCAG AA standard
- * WCAG AA requires 4.5:1 for normal text, 3:1 for large text
+ * WCAG AA Compliance check
  */
 export function meetsWCAG_AA(foreground: string, background: string, isLargeText = false): boolean {
   const ratio = getContrastRatio(foreground, background);
@@ -403,56 +429,20 @@ export function meetsWCAG_AA(foreground: string, background: string, isLargeText
 }
 
 /**
- * Validate theme accessibility
- * Returns array of warnings for contrast issues
- */
-export function validateThemeAccessibility(theme: Theme): string[] {
-  const warnings: string[] = [];
-  const darkBackground = '#0a0a14'; // Approximate dark game background
-
-  // Check score text contrast (large text - 3:1 ratio)
-  if (!meetsWCAG_AA(theme.score.color, darkBackground, true)) {
-    const ratio = getContrastRatio(theme.score.color, darkBackground).toFixed(2);
-    warnings.push(`Score text contrast too low: ${ratio}:1 (should be ≥3:1 for large text)`);
-  }
-
-  // Note: Ball, paddles, and power-ups are large visual elements
-  // They have more flexible contrast requirements
-  // Main concern is readability of score/text elements
-
-  return warnings;
-}
-
-/**
- * CSS Variables System
- * Apply theme colors as CSS custom properties for UI components
- */
-
-/**
  * Apply theme as CSS variables to document root
- * Enables theme colors in CSS files
  */
 export function applyThemeAsCSSVariables(theme: Theme): void {
   const root = document.documentElement;
-
-  // Paddle colors
   root.style.setProperty('--theme-paddle-left', theme.paddle.left.color);
   root.style.setProperty('--theme-paddle-right', theme.paddle.right.color);
-
-  // Ball colors
   root.style.setProperty('--theme-ball', theme.ball.color);
   root.style.setProperty('--theme-ball-trail', theme.ball.trailColor);
-
-  // Score colors
   root.style.setProperty('--theme-score', theme.score.color);
-
-  // Power-up colors
   root.style.setProperty('--theme-powerup-big-paddle', theme.powerUp.bigPaddle);
   root.style.setProperty('--theme-powerup-fast-ball', theme.powerUp.fastBall);
   root.style.setProperty('--theme-powerup-multi-ball', theme.powerUp.multiBall);
   root.style.setProperty('--theme-powerup-shield', theme.powerUp.shield);
 
-  // Background gradient (convert to CSS gradient string)
   const gradientStops = theme.background.gradient
     .map((stop) => `hsl(${stop.hue}, ${stop.saturation}%, ${stop.lightness}%) ${stop.position * 100}%`)
     .join(', ');

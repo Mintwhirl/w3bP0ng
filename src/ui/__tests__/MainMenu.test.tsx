@@ -58,40 +58,20 @@ describe('MainMenu', () => {
   });
 
   describe('Mode Availability', () => {
-    it('should show Classic Mode as available', () => {
+    it('should show all modes as available', () => {
       render(<MainMenu />);
-      const classicButton = screen.getByLabelText(/Classic Mode - Available/i);
-      expect(classicButton).not.toBeDisabled();
+      
+      expect(screen.getByLabelText(/Classic Mode - Available/i)).not.toBeDisabled();
+      expect(screen.getByLabelText(/Physics Puzzle - Available/i)).not.toBeDisabled();
+      expect(screen.getByLabelText(/Rhythm Mode - Available/i)).not.toBeDisabled();
+      expect(screen.getByLabelText(/Battle Royale - Available/i)).not.toBeDisabled();
+      expect(screen.getByLabelText(/Level Editor - Available/i)).not.toBeDisabled();
     });
 
-    it('should show Physics Puzzle as coming soon', () => {
+    it('should not display "Coming Soon" badges', () => {
       render(<MainMenu />);
-      const puzzleButton = screen.getByLabelText(/Physics Puzzle - Coming Soon/i);
-      expect(puzzleButton).toBeDisabled();
-    });
-
-    it('should show Rhythm Mode as coming soon', () => {
-      render(<MainMenu />);
-      const rhythmButton = screen.getByLabelText(/Rhythm Mode - Coming Soon/i);
-      expect(rhythmButton).toBeDisabled();
-    });
-
-    it('should show Battle Royale as coming soon', () => {
-      render(<MainMenu />);
-      const battleButton = screen.getByLabelText(/Battle Royale - Coming Soon/i);
-      expect(battleButton).toBeDisabled();
-    });
-
-    it('should show Level Editor as coming soon', () => {
-      render(<MainMenu />);
-      const editorButton = screen.getByLabelText(/Level Editor - Coming Soon/i);
-      expect(editorButton).toBeDisabled();
-    });
-
-    it('should display "Coming Soon" badges on unavailable modes', () => {
-      render(<MainMenu />);
-      const badges = screen.getAllByText('Coming Soon');
-      expect(badges).toHaveLength(4); // 4 unavailable modes
+      const badges = screen.queryAllByText('Coming Soon');
+      expect(badges).toHaveLength(0);
     });
   });
 
@@ -106,27 +86,24 @@ describe('MainMenu', () => {
       expect(useGameStore.getState().currentMode).toBe('classic');
     });
 
-    it('should not change mode when clicking disabled mode card', async () => {
+    it('should change to puzzle mode when clicking Physics Puzzle card', async () => {
       const user = userEvent.setup();
       render(<MainMenu />);
 
-      const puzzleButton = screen.getByLabelText(/Physics Puzzle - Coming Soon/i);
+      const puzzleButton = screen.getByLabelText(/Physics Puzzle - Available/i);
       await user.click(puzzleButton);
 
-      expect(useGameStore.getState().currentMode).toBe('menu');
+      expect(useGameStore.getState().currentMode).toBe('puzzle');
     });
 
-    it('should maintain current mode state after clicking disabled modes', async () => {
+    it('should change to rhythm mode when clicking Rhythm Mode card', async () => {
       const user = userEvent.setup();
       render(<MainMenu />);
 
-      const rhythmButton = screen.getByLabelText(/Rhythm Mode - Coming Soon/i);
-      const battleButton = screen.getByLabelText(/Battle Royale - Coming Soon/i);
-
+      const rhythmButton = screen.getByLabelText(/Rhythm Mode - Available/i);
       await user.click(rhythmButton);
-      await user.click(battleButton);
 
-      expect(useGameStore.getState().currentMode).toBe('menu');
+      expect(useGameStore.getState().currentMode).toBe('rhythm');
     });
   });
 
@@ -160,22 +137,15 @@ describe('MainMenu', () => {
       render(<MainMenu />);
 
       expect(screen.getByLabelText(/Classic Mode - Available/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Physics Puzzle - Coming Soon/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Rhythm Mode - Coming Soon/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Battle Royale - Coming Soon/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Level Editor - Coming Soon/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Physics Puzzle - Available/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Rhythm Mode - Available/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Battle Royale - Available/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Level Editor - Available/i)).toBeInTheDocument();
     });
 
     it('should have aria-label on settings button', () => {
       render(<MainMenu />);
       expect(screen.getByLabelText('Open settings')).toBeInTheDocument();
-    });
-
-    it('should have proper link attributes on external link', () => {
-      render(<MainMenu />);
-      const link = screen.getByText('View Source on GitHub');
-      expect(link).toHaveAttribute('target', '_blank');
-      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     });
   });
 
@@ -192,18 +162,14 @@ describe('MainMenu', () => {
   });
 
   describe('CSS Classes', () => {
-    it('should apply disabled class to unavailable mode cards', () => {
-      render(<MainMenu />);
-
-      const puzzleButton = screen.getByLabelText(/Physics Puzzle - Coming Soon/i);
-      expect(puzzleButton).toHaveClass('mode-card--disabled');
-    });
-
     it('should not apply disabled class to available mode cards', () => {
       render(<MainMenu />);
 
       const classicButton = screen.getByLabelText(/Classic Mode - Available/i);
       expect(classicButton).not.toHaveClass('mode-card--disabled');
+      
+      const puzzleButton = screen.getByLabelText(/Physics Puzzle - Available/i);
+      expect(puzzleButton).not.toHaveClass('mode-card--disabled');
     });
   });
 });

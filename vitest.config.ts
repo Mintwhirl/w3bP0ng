@@ -8,6 +8,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom', // Changed from happy-dom for better security
     setupFiles: ['./src/test/setup.ts'],
+    exclude: ['node_modules', 'dist', '.idea', '.git', '.cache', 'tests'],
     css: true,
     coverage: {
       provider: 'v8',

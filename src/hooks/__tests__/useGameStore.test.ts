@@ -186,28 +186,28 @@ describe('useGameStore', () => {
       expect(classicMode?.available).toBe(true);
     });
 
-    it('should have puzzle mode unavailable', () => {
+    it('should have puzzle mode available', () => {
       const puzzleMode = GAME_MODES.find(mode => mode.id === 'puzzle');
       expect(puzzleMode).toBeDefined();
-      expect(puzzleMode?.available).toBe(false);
+      expect(puzzleMode?.available).toBe(true);
     });
 
-    it('should have rhythm mode unavailable', () => {
+    it('should have rhythm mode available', () => {
       const rhythmMode = GAME_MODES.find(mode => mode.id === 'rhythm');
       expect(rhythmMode).toBeDefined();
-      expect(rhythmMode?.available).toBe(false);
+      expect(rhythmMode?.available).toBe(true);
     });
 
-    it('should have battle-royale mode unavailable', () => {
+    it('should have battle-royale mode available', () => {
       const battleMode = GAME_MODES.find(mode => mode.id === 'battle-royale');
       expect(battleMode).toBeDefined();
-      expect(battleMode?.available).toBe(false);
+      expect(battleMode?.available).toBe(true);
     });
 
-    it('should have editor mode unavailable', () => {
+    it('should have editor mode available', () => {
       const editorMode = GAME_MODES.find(mode => mode.id === 'editor');
       expect(editorMode).toBeDefined();
-      expect(editorMode?.available).toBe(false);
+      expect(editorMode?.available).toBe(true);
     });
 
     it('should have all required metadata for each mode', () => {

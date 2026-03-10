@@ -92,6 +92,13 @@ export interface Level {
   // Ball settings
   ballSpeed?: number;  // Initial ball speed (default: 5)
   ballCount?: number;  // Number of balls (default: 1)
+
+  // Editor settings
+  canvas?: {
+    width: number;
+    height: number;
+  };
+  paddle?: Paddle;
 }
 
 // ═══════════════════════════════════════════════════════════

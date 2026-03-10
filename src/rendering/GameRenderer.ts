@@ -17,6 +17,12 @@ export class GameRenderer {
   private canvas: HTMLCanvasElement;
   private theme: Theme;
   private startTime: number;
+  
+  // Cache for performance
+  private cachedGradient: CanvasGradient | null = null;
+  private lastWidth: number = 0;
+  private lastHeight: number = 0;
+  private lastThemeId: string = '';
 
   constructor(canvas: HTMLCanvasElement, theme: Theme = DEFAULT_THEME) {
     this.canvas = canvas;
@@ -27,13 +33,18 @@ export class GameRenderer {
     this.ctx = ctx;
     this.theme = theme;
     this.startTime = performance.now();
+    this.lastWidth = canvas.width;
+    this.lastHeight = canvas.height;
   }
 
   /**
    * Change the current theme
    */
   setTheme(theme: Theme): void {
-    this.theme = theme;
+    if (this.theme.id !== theme.id) {
+      this.theme = theme;
+      this.cachedGradient = null; // Invalidate cache
+    }
   }
 
   /**
@@ -42,6 +53,13 @@ export class GameRenderer {
   render(state: RenderState): void {
     try {
       const { screenShake } = state;
+
+      // Handle canvas resize / cache invalidation
+      if (this.canvas.width !== this.lastWidth || this.canvas.height !== this.lastHeight) {
+        this.cachedGradient = null;
+        this.lastWidth = this.canvas.width;
+        this.lastHeight = this.canvas.height;
+      }
 
       // Apply screen shake transform
       this.ctx.save();
@@ -74,9 +92,17 @@ export class GameRenderer {
 
   /**
    * Render animated gradient background
+   * Optimized with gradient caching
    */
   private renderBackground(): void {
     const { gradient, animated, animationSpeed } = this.theme.background;
+
+    // For non-animated backgrounds, use the cache
+    if (!animated && this.cachedGradient) {
+      this.ctx.fillStyle = this.cachedGradient;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      return;
+    }
 
     const gradientObj = this.ctx.createLinearGradient(
       0,
@@ -111,6 +137,8 @@ export class GameRenderer {
           `hsl(${stop.hue}, ${stop.saturation}%, ${stop.lightness}%)`
         );
       });
+      // Store in cache for next static frame
+      this.cachedGradient = gradientObj;
     }
 
     this.ctx.fillStyle = gradientObj;

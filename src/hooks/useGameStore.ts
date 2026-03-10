@@ -4,6 +4,7 @@
  */
 
 import { create } from 'zustand';
+import { ticker } from '../engine/EngineTicker';
 
 /**
  * Available game modes
@@ -31,6 +32,7 @@ interface GameStore {
   // User settings
   soundEnabled: boolean;
   currentTheme: string;
+  reducedMotion: boolean;
 
   // UI state
   settingsPanelOpen: boolean;
@@ -39,6 +41,7 @@ interface GameStore {
   setMode: (mode: GameMode) => void;
   toggleSound: () => void;
   setTheme: (themeId: string) => void;
+  updateSettings: (settings: Partial<{ soundEnabled: boolean; currentTheme: string; reducedMotion: boolean }>) => void;
   toggleSettingsPanel: () => void;
   returnToMenu: () => void;
 }
@@ -84,6 +87,14 @@ export const GAME_MODES: GameModeInfo[] = [
   },
 ];
 
+// Initial motion preference
+const getInitialMotionPref = () => {
+  if (typeof window !== 'undefined') {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+  return false;
+};
+
 /**
  * Create Zustand store
  */
@@ -92,6 +103,7 @@ export const useGameStore = create<GameStore>((set) => ({
   currentMode: 'title',
   soundEnabled: true,
   currentTheme: 'synthwave-sunset',
+  reducedMotion: getInitialMotionPref(),
   settingsPanelOpen: false,
 
   // Actions
@@ -100,6 +112,13 @@ export const useGameStore = create<GameStore>((set) => ({
   toggleSound: () => set((state) => ({ soundEnabled: !state.soundEnabled })),
 
   setTheme: (themeId: string) => set({ currentTheme: themeId }),
+
+  updateSettings: (settings) => set((state) => {
+    if (settings.reducedMotion !== undefined) {
+      ticker.setReducedMotion(settings.reducedMotion);
+    }
+    return { ...state, ...settings };
+  }),
 
   toggleSettingsPanel: () => set((state) => ({
     settingsPanelOpen: !state.settingsPanelOpen

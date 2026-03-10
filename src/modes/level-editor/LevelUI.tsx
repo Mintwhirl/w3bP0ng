@@ -3,11 +3,10 @@
  * Provides the user interface for the level editor using GlassHUD components
  */
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   GlassPanel,
   GlassButton,
-  StatsDisplay,
   PauseOverlay,
 } from '../../ui/GlassHUD';
 import { useGameStore } from '../../hooks/useGameStore';
@@ -15,20 +14,14 @@ import type {
   EditorState,
   EditMode,
   PlaceableObjectType,
-  LevelMetadata,
 } from './types';
 import {
   EDITOR_TOOLS,
-  DEFAULT_BLOCK_SIZE,
 } from './types';
 import {
-  saveLevel,
-  loadLevel,
-  deleteLevel,
   listLevels,
   exportLevel,
   importLevel,
-  clearAllLevels,
 } from './LevelData';
 
 interface LevelUIProps {
@@ -46,11 +39,6 @@ interface LevelUIProps {
   canUndo: boolean;
   canRedo: boolean;
   isTestMode: boolean;
-  testModeStats?: {
-    balls: number;
-    hits: number;
-    time: string;
-  };
 }
 
 export default function LevelUI({
@@ -68,12 +56,10 @@ export default function LevelUI({
   canUndo,
   canRedo,
   isTestMode,
-  testModeStats,
 }: LevelUIProps) {
   const { returnToMenu } = useGameStore();
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [saveName, setSaveName] = useState(editorState.levelMetadata.name);
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
   const [customLevels, setCustomLevels] = useState<string[]>([]);
@@ -167,13 +153,13 @@ export default function LevelUI({
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
-    input.onchange = (e) => {
+    input.onchange = (e: Event) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = (loadEvent: ProgressEvent<FileReader>) => {
           try {
-            const content = e.target?.result as string;
+            const content = loadEvent.target?.result as string;
             const result = importLevel(content);
             if (result.success) {
               alert('Level imported successfully!');
@@ -209,13 +195,10 @@ export default function LevelUI({
     return (
       <PauseOverlay
         title="TEST MODE"
-        message={testModeStats ? `Balls: ${testModeStats.balls} | Hits: ${testModeStats.hits} | Time: ${testModeStats.time}` : 'Testing level...'}
         onResume={onTestLevel}
         onExit={() => {
           onTestLevel(); // Exit test mode
         }}
-        resumeText="Exit Test Mode"
-        exitText="Exit Test Mode"
       />
     );
   }
@@ -226,8 +209,8 @@ export default function LevelUI({
       <GlassPanel
         variant="subtle"
         neonAccent="cyan"
-        position="top-left"
         className="editor-toolbar"
+        style={{ position: 'absolute', top: '20px', left: '20px' }}
       >
         <div className="toolbar-section">
           <div className="toolbar-group">
@@ -284,7 +267,7 @@ export default function LevelUI({
               ⊞ Grid
             </GlassButton>
             <GlassButton
-              neonAccent="green"
+              neonAccent="magenta"
               onClick={onResetLevel}
               title="Reset Level"
             >
@@ -298,8 +281,8 @@ export default function LevelUI({
       <GlassPanel
         variant="subtle"
         neonAccent="violet"
-        position="right"
         className="tools-panel"
+        style={{ position: 'absolute', top: '20px', right: '20px' }}
       >
         <h3 className="panel-title">🛠️ Tools</h3>
         <div className="tools-grid">
@@ -322,8 +305,8 @@ export default function LevelUI({
       <GlassPanel
         variant="subtle"
         neonAccent="magenta"
-        position="left"
         className="info-panel"
+        style={{ position: 'absolute', top: '200px', left: '20px' }}
       >
         <h3 className="panel-title">📋 Level Info</h3>
         <div className="level-metadata">
@@ -354,12 +337,12 @@ export default function LevelUI({
       <GlassPanel
         variant="subtle"
         neonAccent="cyan"
-        position="bottom"
         className="control-panel"
+        style={{ position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)' }}
       >
         <div className="control-buttons">
           <GlassButton
-            neonAccent="green"
+            neonAccent="violet"
             onClick={() => setShowSaveDialog(true)}
             title="Save Level (Ctrl+S)"
           >
@@ -387,7 +370,7 @@ export default function LevelUI({
               📥 Import
           </GlassButton>
           <GlassButton
-            neonAccent="orange"
+            neonAccent="magenta"
             onClick={() => returnToMenu()}
             title="Exit to Menu"
           >
@@ -413,7 +396,7 @@ export default function LevelUI({
               />
             </div>
             <div className="dialog-buttons">
-              <GlassButton neonAccent="green" onClick={handleSave}>
+              <GlassButton neonAccent="magenta" onClick={handleSave}>
                 Save
               </GlassButton>
               <GlassButton onClick={() => setShowSaveDialog(false)}>
@@ -445,7 +428,7 @@ export default function LevelUI({
                     <span className="level-name">{levelName}</span>
                     <div className="level-actions">
                       <GlassButton
-                        neonAccent="green"
+                        neonAccent="cyan"
                         size="small"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -455,7 +438,7 @@ export default function LevelUI({
                         📤
                       </GlassButton>
                       <GlassButton
-                        neonAccent="red"
+                        neonAccent="magenta"
                         size="small"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -472,7 +455,7 @@ export default function LevelUI({
             </div>
             <div className="dialog-buttons">
               <GlassButton
-                neonAccent="green"
+                neonAccent="cyan"
                 onClick={handleLoad}
                 disabled={!selectedLevel}
               >
@@ -489,7 +472,7 @@ export default function LevelUI({
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .level-ui {
           position: fixed;
           top: 0;

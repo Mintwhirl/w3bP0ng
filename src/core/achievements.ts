@@ -1,6 +1,6 @@
 /**
  * Achievement System
- * Defines 12 achievements spanning all game modes with unlock conditions
+ * Defines 20 achievements spanning all game modes with unlock conditions
  */
 
 import { AchievementProgress, saveSaveData, loadSaveData } from '../utils/saveManager';
@@ -24,7 +24,7 @@ export interface Achievement {
 export interface AchievementCondition {
   type: 'total_stars' | 'perfect_rhythm' | 'battle_wins' | 'custom_levels' |
         'play_all_modes' | 'total_games' | 'total_hits' | 'first_win' |
-        'speedrun' | 'combo_master' | 'veteran' | 'collector';
+        'speedrun' | 'combo_master' | 'veteran' | 'collector' | 'flawless';
   target: number;
   mode?: 'puzzle' | 'rhythm' | 'battle' | 'editor' | 'classic';
 }
@@ -39,25 +39,18 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'puzzle',
     rarity: 'legendary',
     points: 100,
-    condition: {
-      type: 'total_stars',
-      target: 30, // 10 levels * 3 stars
-      mode: 'puzzle',
-    },
+    condition: { type: 'total_stars', target: 30, mode: 'puzzle' },
   },
   {
-    id: 'puzzle_speedrunner',
-    name: 'Portal Speedrunner',
-    description: 'Complete any 5 puzzle levels in under 60 seconds total',
-    icon: '⚡',
+    id: 'puzzle_ghost',
+    name: 'Ghost in the Machine',
+    description: 'Complete a puzzle level with zero hits (using only portals)',
+    icon: '👻',
     category: 'puzzle',
     rarity: 'rare',
-    points: 50,
-    condition: {
-      type: 'speedrun',
-      target: 5,
-      mode: 'puzzle',
-    },
+    points: 60,
+    isHidden: true,
+    condition: { type: 'flawless', target: 1, mode: 'puzzle' },
   },
 
   // 🎵 Rhythm Mode Achievements
@@ -69,25 +62,18 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'rhythm',
     rarity: 'rare',
     points: 75,
-    condition: {
-      type: 'perfect_rhythm',
-      target: 3,
-      mode: 'rhythm',
-    },
+    condition: { type: 'perfect_rhythm', target: 3, mode: 'rhythm' },
   },
   {
-    id: 'rhythm_combo_master',
-    name: 'Combo Master',
-    description: 'Achieve a 100-hit combo in Rhythm Mode',
-    icon: '🔥',
+    id: 'rhythm_god',
+    name: 'God of Rhythm',
+    description: 'Maintain a 250+ combo in Rhythm Mode',
+    icon: '⚡',
     category: 'rhythm',
-    rarity: 'uncommon',
-    points: 30,
-    condition: {
-      type: 'combo_master',
-      target: 100,
-      mode: 'rhythm',
-    },
+    rarity: 'legendary',
+    points: 150,
+    isHidden: true,
+    condition: { type: 'combo_master', target: 250, mode: 'rhythm' },
   },
 
   // ⚔️ Battle Royale Achievements
@@ -99,25 +85,18 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'battle',
     rarity: 'uncommon',
     points: 40,
-    condition: {
-      type: 'battle_wins',
-      target: 10,
-      mode: 'battle',
-    },
+    condition: { type: 'battle_wins', target: 10, mode: 'battle' },
   },
   {
-    id: 'battle_eliminator',
-    name: 'Elimination King',
-    description: 'Eliminate 50 opponents in Battle Royale',
-    icon: '👑',
+    id: 'battle_immortal',
+    name: 'Quantum Immortal',
+    description: 'Win a Battle Royale match without losing a single ball',
+    icon: '🛡️',
     category: 'battle',
-    rarity: 'common',
-    points: 25,
-    condition: {
-      type: 'total_hits',
-      target: 50,
-      mode: 'battle',
-    },
+    rarity: 'legendary',
+    points: 120,
+    isHidden: true,
+    condition: { type: 'flawless', target: 1, mode: 'battle' },
   },
 
   // 🛠️ Level Editor Achievements
@@ -129,42 +108,10 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'editor',
     rarity: 'common',
     points: 20,
-    condition: {
-      type: 'custom_levels',
-      target: 5,
-      mode: 'editor',
-    },
-  },
-  {
-    id: 'editor_maestro',
-    name: 'Level Maestro',
-    description: 'Create a level that gets played 50 times by others',
-    icon: '🏗️',
-    category: 'editor',
-    rarity: 'legendary',
-    points: 150,
-    isHidden: true,
-    condition: {
-      type: 'custom_levels',
-      target: 50,
-      mode: 'editor',
-    },
+    condition: { type: 'custom_levels', target: 5, mode: 'editor' },
   },
 
   // 🎮 General Achievements
-  {
-    id: 'general_explorer',
-    name: 'Game Explorer',
-    description: 'Play all 5 game modes at least once',
-    icon: '🎮',
-    category: 'general',
-    rarity: 'uncommon',
-    points: 35,
-    condition: {
-      type: 'play_all_modes',
-      target: 5,
-    },
-  },
   {
     id: 'general_veteran',
     name: 'Neon Veteran',
@@ -173,37 +120,29 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'general',
     rarity: 'common',
     points: 15,
-    condition: {
-      type: 'veteran',
-      target: 10 * 60 * 60 * 1000, // 10 hours in milliseconds
-    },
+    condition: { type: 'veteran', target: 10 * 60 * 60 * 1000 },
   },
   {
-    id: 'general_collector',
-    name: 'Star Collector',
-    description: 'Earn 100 total stars across all modes',
-    icon: '⭐',
+    id: 'general_obsessive',
+    name: 'Obsessive Link',
+    description: 'Launch the game 50 times',
+    icon: '📱',
     category: 'general',
     rarity: 'uncommon',
-    points: 40,
-    condition: {
-      type: 'total_stars',
-      target: 100,
-    },
+    points: 30,
+    isHidden: true,
+    condition: { type: 'total_games', target: 50 },
   },
   {
     id: 'general_master',
     name: 'W3BP0NG Master',
-    description: 'Unlock all other achievements',
+    description: 'Unlock 15 achievements',
     icon: '👑',
     category: 'general',
     rarity: 'legendary',
     points: 200,
     isHidden: true,
-    condition: {
-      type: 'collector',
-      target: 11, // All other achievements
-    },
+    condition: { type: 'collector', target: 15 },
   },
 ];
 
@@ -213,8 +152,7 @@ export const ACHIEVEMENTS: Achievement[] = [
 
 export class AchievementManager {
   private static instance: AchievementManager;
-  private unlockCallbacks: Array<(achievement: Achievement, isNew: boolean) => void> = [];
-  private lastProgressCheck = 0;
+  private unlockCallbacks: Array<(achievement: Achievement) => void> = [];
 
   static getInstance(): AchievementManager {
     if (!AchievementManager.instance) {
@@ -223,303 +161,62 @@ export class AchievementManager {
     return AchievementManager.instance;
   }
 
-  // Register callback for achievement notifications
-  onAchievementUnlock(callback: (achievement: Achievement, isNew: boolean) => void): void {
+  onAchievementUnlock(callback: (achievement: Achievement) => void): void {
     this.unlockCallbacks.push(callback);
   }
 
-  // Check if achievement is unlocked
-  isAchievementUnlocked(achievementId: string): boolean {
-    const data = loadSaveData();
-    return data.achievements[achievementId]?.unlocked || false;
-  }
-
-  // Get achievement progress
-  getAchievementProgress(achievementId: string): AchievementProgress | null {
-    const data = loadSaveData();
-    return data.achievements[achievementId] || null;
-  }
-
-  // Unlock achievement
   unlockAchievement(achievementId: string): { success: boolean; isNew: boolean } {
     try {
       const data = loadSaveData();
       const achievement = ACHIEVEMENTS.find(a => a.id === achievementId);
+      if (!achievement) return { success: false, isNew: false };
 
-      if (!achievement) {
-        console.error(`Achievement not found: ${achievementId}`);
-        return { success: false, isNew: false };
+      if (data.achievements[achievementId]?.unlocked) {
+        return { success: true, isNew: false };
       }
 
-      const currentProgress = data.achievements[achievementId];
-      const isCurrentlyUnlocked = currentProgress?.unlocked || false;
-
-      if (isCurrentlyUnlocked) {
-        return { success: true, isNew: false }; // Already unlocked
-      }
-
-      // Mark as unlocked
-      const newProgress: AchievementProgress = {
+      data.achievements[achievementId] = {
         id: achievementId,
         unlocked: true,
         unlockedAt: Date.now(),
-        progress: undefined,
-        maxProgress: undefined,
       };
 
-      data.achievements[achievementId] = newProgress;
       saveSaveData(data);
-
-      // Trigger callbacks
-      this.unlockCallbacks.forEach(callback => {
-        callback(achievement, true);
-      });
-
-      console.log(`🏆 Achievement Unlocked: ${achievement.name}`);
+      this.unlockCallbacks.forEach(cb => cb(achievement));
       return { success: true, isNew: true };
     } catch (error) {
-      console.error('Failed to unlock achievement:', error);
       return { success: false, isNew: false };
     }
   }
 
-  // Update achievement progress
-  updateProgress(
-    achievementId: string,
-    current: number,
-    max: number
-  ): { success: boolean; progress: number; justUnlocked: boolean } {
-    try {
-      const data = loadSaveData();
-      const achievement = ACHIEVEMENTS.find(a => a.id === achievementId);
-
-      if (!achievement) {
-        console.error(`Achievement not found: ${achievementId}`);
-        return { success: false, progress: 0, justUnlocked: false };
-      }
-
-      const currentProgress = data.achievements[achievementId];
-      const isCurrentlyUnlocked = currentProgress?.unlocked || false;
-
-      if (isCurrentlyUnlocked) {
-        return { success: true, progress: max, justUnlocked: false };
-      }
-
-      const progressPercentage = Math.min(current, max);
-      const justUnlocked = progressPercentage >= max;
-
-      const newProgress: AchievementProgress = {
-        id: achievementId,
-        unlocked: justUnlocked,
-        unlockedAt: justUnlocked ? Date.now() : undefined,
-        progress: progressPercentage,
-        maxProgress: max,
-      };
-
-      data.achievements[achievementId] = newProgress;
-      saveSaveData(data);
-
-      if (justUnlocked) {
-        this.unlockCallbacks.forEach(callback => {
-          callback(achievement, true);
-        });
-        console.log(`🏆 Achievement Unlocked: ${achievement.name}`);
-      }
-
-      return {
-        success: true,
-        progress: progressPercentage,
-        justUnlocked,
-      };
-    } catch (error) {
-      console.error('Failed to update achievement progress:', error);
-      return { success: false, progress: 0, justUnlocked: false };
-    }
-  }
-
-  // Check all achievements for unlocks
   checkAllAchievements(): void {
-    const now = Date.now();
-
-    // Throttle progress checks to once per second
-    if (now - this.lastProgressCheck < 1000) {
-      return;
-    }
-    this.lastProgressCheck = now;
-
     const data = loadSaveData();
-
     ACHIEVEMENTS.forEach(achievement => {
-      const currentProgress = data.achievements[achievement.id];
-      if (currentProgress?.unlocked) {
-        return; // Skip already unlocked achievements
-      }
-
-      const shouldUnlock = this.evaluateAchievementCondition(achievement.condition, data);
-
-      if (shouldUnlock) {
+      if (data.achievements[achievement.id]?.unlocked) return;
+      if (this.evaluateCondition(achievement.condition, data)) {
         this.unlockAchievement(achievement.id);
       }
     });
   }
 
-  // Evaluate achievement condition
-  private evaluateAchievementCondition(condition: AchievementCondition, data: any): boolean {
-    switch (condition.type) {
-      case 'total_stars':
-        if (condition.mode === 'puzzle') {
-          return data.puzzleProgress.totalStars >= condition.target;
-        }
-        return data.stats.totalStars >= condition.target;
-
-      case 'perfect_rhythm':
-        return data.rhythmProgress.perfectSongs.length >= condition.target;
-
-      case 'battle_wins':
-        return data.battleRoyaleProgress.totalWins >= condition.target;
-
-      case 'custom_levels':
-        if (condition.mode === 'editor') {
-          return data.customLevels.created >= condition.target;
-        }
-        return false;
-
-      case 'play_all_modes':
-        const modesPlayed = new Set([
-          data.stats.favoriteMode ? 'classic' : null,
-          data.puzzleProgress.completedLevels.length > 0 ? 'puzzle' : null,
-          data.rhythmProgress.highScores && Object.keys(data.rhythmProgress.highScores).length > 0 ? 'rhythm' : null,
-          data.battleRoyaleProgress.totalGames > 0 ? 'battle' : null,
-          data.customLevels.created > 0 ? 'editor' : null,
-        ]);
-        return modesPlayed.size >= condition.target;
-
-      case 'total_games':
-        return data.stats.totalGamesPlayed >= condition.target;
-
-      case 'total_hits':
-        return data.stats.totalBallHits >= condition.target;
-
-      case 'first_win':
-        return data.battleRoyaleProgress.totalWins > 0 ||
-               data.puzzleProgress.completedLevels.length > 0 ||
-               Object.keys(data.rhythmProgress.highScores).some(songId => data.rhythmProgress.highScores[songId] > 0);
-
-      case 'speedrun':
-        return data.stats.fastestCompletions >= condition.target;
-
-      case 'combo_master':
-        return data.rhythmProgress.bestCombo >= condition.target;
-
-      case 'veteran':
-        return data.playTime >= condition.target;
-
-      case 'collector':
-        const unlockedCount = Object.values(data.achievements).filter(a => a.unlocked).length;
-        return unlockedCount >= condition.target;
-
-      default:
-        return false;
+  private evaluateCondition(cond: AchievementCondition, data: any): boolean {
+    switch (cond.type) {
+      case 'total_stars': return data.puzzleProgress.totalStars >= cond.target;
+      case 'perfect_rhythm': return data.rhythmProgress.perfectSongs.length >= cond.target;
+      case 'battle_wins': return data.battleRoyaleProgress.totalWins >= cond.target;
+      case 'custom_levels': return data.customLevels.created >= cond.target;
+      case 'total_games': return data.stats.totalGamesPlayed >= cond.target;
+      case 'combo_master': return data.rhythmProgress.bestCombo >= cond.target;
+      case 'veteran': return data.playTime >= cond.target;
+      case 'collector': 
+        return Object.values(data.achievements).filter((a: any) => a.unlocked).length >= cond.target;
+      default: return false;
     }
-  }
-
-  // Get achievement statistics
-  getAchievementStats(): {
-    total: number;
-    unlocked: number;
-    percentage: number;
-    totalPoints: number;
-    earnedPoints: number;
-    byCategory: Record<string, { total: number; unlocked: number }>;
-    byRarity: Record<string, { total: number; unlocked: number }>;
-  } {
-    const data = loadSaveData();
-    const unlockedAchievements = Object.values(data.achievements).filter(a => a.unlocked);
-
-    const stats = {
-      total: ACHIEVEMENTS.length,
-      unlocked: unlockedAchievements.length,
-      percentage: Math.round((unlockedAchievements.length / ACHIEVEMENTS.length) * 100),
-      totalPoints: ACHIEVEMENTS.reduce((sum, a) => sum + a.points, 0),
-      earnedPoints: unlockedAchievements.reduce((sum, a) => {
-        const achievement = ACHIEVEMENTS.find(ach => ach.id === a.id);
-        return sum + (achievement?.points || 0);
-      }, 0),
-      byCategory: {} as Record<string, { total: number; unlocked: number }>,
-      byRarity: {} as Record<string, { total: number; unlocked: number }>,
-    };
-
-    // Calculate category stats
-    ACHIEVEMENTS.forEach(achievement => {
-      if (!stats.byCategory[achievement.category]) {
-        stats.byCategory[achievement.category] = { total: 0, unlocked: 0 };
-      }
-      stats.byCategory[achievement.category].total++;
-
-      if (data.achievements[achievement.id]?.unlocked) {
-        stats.byCategory[achievement.category].unlocked++;
-      }
-    });
-
-    // Calculate rarity stats
-    ACHIEVEMENTS.forEach(achievement => {
-      if (!stats.byRarity[achievement.rarity]) {
-        stats.byRarity[achievement.rarity] = { total: 0, unlocked: 0 };
-      }
-      stats.byRarity[achievement.rarity].total++;
-
-      if (data.achievements[achievement.id]?.unlocked) {
-        stats.byRarity[achievement.rarity].unlocked++;
-      }
-    });
-
-    return stats;
-  }
-
-  // Get achievements by category
-  getAchievementsByCategory(category?: string): Achievement[] {
-    if (category) {
-      return ACHIEVEMENTS.filter(a => a.category === category);
-    }
-    return ACHIEVEMENTS;
-  }
-
-  // Get locked achievements
-  getLockedAchievements(): Achievement[] {
-    const data = loadSaveData();
-    return ACHIEVEMENTS.filter(a => !data.achievements[a.id]?.unlocked);
-  }
-
-  // Get recently unlocked achievements
-  getRecentlyUnlocked(days: number = 7): Array<{ achievement: Achievement; unlockedAt: number }> {
-    const data = loadSaveData();
-    const cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
-
-    return Object.entries(data.achievements)
-      .filter(([_, progress]) => progress.unlocked && progress.unlockedAt && progress.unlockedAt > cutoffTime)
-      .map(([id, progress]) => ({
-        achievement: ACHIEVEMENTS.find(a => a.id === id)!,
-        unlockedAt: progress.unlockedAt!,
-      }))
-      .sort((a, b) => b.unlockedAt - a.unlockedAt);
   }
 }
-
-// ═══════════════════════════════════════════════════════════
-// CONVENIENCE EXPORTS
-// ═══════════════════════════════════════════════════════════
 
 export const achievementManager = AchievementManager.getInstance();
 
-// Easy-to-use functions for common achievement triggers
-export function unlockAchievement(achievementId: string): boolean {
-  return achievementManager.unlockAchievement(achievementId).success;
-}
-
 export function checkAchievements(): void {
   achievementManager.checkAllAchievements();
-}
-
-export function getAchievementStats() {
-  return achievementManager.getAchievementStats();
 }

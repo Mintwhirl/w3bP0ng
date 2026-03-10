@@ -1,35 +1,32 @@
 /**
  * Floating Energy Ball
  * Gentle orbital motion for visual interest
+ * Memoized and ticker-optimized
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
+import { ticker, TickerGroup } from '../engine/EngineTicker';
 
-export function EnergyBall() {
+export const EnergyBall = memo(function EnergyBall() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-    let startTime = Date.now();
-    let animationFrameId: number;
+    // Skip in tests
+    if (import.meta.env.MODE === 'test') return;
 
-    const animate = () => {
-      const elapsed = (Date.now() - startTime) / 1000;
+    const startTime = performance.now();
+
+    const id = `energy-ball-${Math.random().toString(36).substr(2, 9)}`;
+    
+    return ticker.register(id, (time) => {
+      const elapsed = (time - startTime) / 1000;
 
       // Gentle orbital motion using sine/cosine
       const x = Math.sin(elapsed * 0.5) * 60;
       const y = Math.cos(elapsed * 0.7) * 40;
 
       setPosition({ x, y });
-      animationFrameId = requestAnimationFrame(animate);
-    };
-
-    animationFrameId = requestAnimationFrame(animate);
-
-    return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
-    };
+    }, TickerGroup.UI);
   }, []);
 
   return (
@@ -77,4 +74,4 @@ export function EnergyBall() {
       </svg>
     </div>
   );
-}
+});

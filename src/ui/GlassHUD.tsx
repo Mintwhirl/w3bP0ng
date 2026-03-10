@@ -255,7 +255,7 @@ export function ProgressBar({
 
 interface GlassButtonProps {
   children: ReactNode;
-  onClick?: () => void;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   variant?: 'primary' | 'secondary';
   disabled?: boolean;
   className?: string;
@@ -280,10 +280,16 @@ export function GlassButton({
   const sizeClass = size !== 'medium' ? `glass-button-${size}` : '';
   const accentClass = neonAccent !== 'none' ? `glass-neon-${neonAccent}` : '';
 
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!disabled && onClick) {
+      onClick(e);
+    }
+  };
+
   return (
     <button
       className={`glass-button ${variantClass} ${sizeClass} ${accentClass} ${className}`.trim()}
-      onClick={onClick}
+      onClick={handleClick}
       disabled={disabled}
       title={title}
       style={{

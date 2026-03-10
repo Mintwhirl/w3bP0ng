@@ -15,15 +15,14 @@ import {
   importSaveData,
   resetSaveData,
   getCompletionPercentage,
-  formatPlayTime,
 } from '../utils/saveManager';
 import {
   getAchievementStats,
-  getRecentlyUnlocked,
   getAchievementsByCategory,
+  getRecentlyUnlocked,
   achievementManager,
 } from '../core/achievements';
-import type { SaveData } from '../utils/saveManager';
+import type { Achievement } from '../core/achievements';
 import '../styles/glassmorphism.css';
 
 interface DataManagementModalProps {
@@ -116,7 +115,7 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
         {/* Header */}
         <div className="modal-header">
           <h2 className="modal-title">🎮 DATA MANAGEMENT</h2>
-          <GlassButton onClick={onClose} neonAccent="red">✕</GlassButton>
+          <GlassButton onClick={onClose} neonAccent="magenta">✕</GlassButton>
         </div>
 
         {/* Tab Navigation */}
@@ -137,14 +136,14 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
           </GlassButton>
           <GlassButton
             className={activeTab === 'export' ? 'active' : ''}
-            neonAccent="green"
+            neonAccent="cyan"
             onClick={() => setActiveTab('export')}
           >
             📤 Export
           </GlassButton>
           <GlassButton
             className={activeTab === 'import' ? 'active' : ''}
-            neonAccent="orange"
+            neonAccent="violet"
             onClick={() => setActiveTab('import')}
           >
             📥 Import
@@ -214,13 +213,13 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
               </div>
 
               <div className="action-section">
-                <GlassButton neonAccent="green" onClick={handleExport}>
+                <GlassButton neonAccent="cyan" onClick={handleExport}>
                   📤 Export Save
                 </GlassButton>
-                <GlassButton neonAccent="orange" onClick={() => setActiveTab('import')}>
+                <GlassButton neonAccent="violet" onClick={() => setActiveTab('import')}>
                   📥 Import Save
                 </GlassButton>
-                <GlassButton neonAccent="red" onClick={handleReset}>
+                <GlassButton neonAccent="magenta" onClick={handleReset}>
                   🔄 Reset All Data
                 </GlassButton>
               </div>
@@ -245,7 +244,7 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
                 <h3 className="section-title">🎉 Recent Unlocks</h3>
                 <div className="recent-list">
                   {recentAchievements.length > 0 ? (
-                    recentAchievements.map(({ achievement, unlockedAt }) => (
+                    recentAchievements.map(({ achievement, unlockedAt }: { achievement: Achievement; unlockedAt: number }) => (
                       <div key={achievement.id} className="recent-achievement">
                         <span className="achievement-icon">{achievement.icon}</span>
                         <div className="achievement-info">
@@ -266,7 +265,10 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
               <div className="achievement-categories">
                 {(['puzzle', 'rhythm', 'battle', 'editor', 'general'] as const).map(category => {
                   const categoryStats = achievementStats.byCategory[category];
+                  if (!categoryStats) return null;
+
                   const categoryAchievements = getAchievementsByCategory(category);
+                  if (!categoryAchievements) return null;
 
                   return (
                     <div key={category} className="achievement-category">
@@ -281,7 +283,7 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
                         {categoryStats.unlocked}/{categoryStats.total}
                       </div>
                       <div className="category-achievements">
-                        {categoryAchievements.map(achievement => (
+                        {categoryAchievements.map((achievement: Achievement) => (
                           <div
                             key={achievement.id}
                             className={`achievement-item ${
@@ -312,7 +314,7 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
                 </ul>
               </div>
 
-              <GlassButton neonAccent="green" onClick={handleExport}>
+              <GlassButton neonAccent="cyan" onClick={handleExport}>
                 📤 Download Save Data
               </GlassButton>
 
@@ -365,7 +367,7 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
         </div>
       </GlassPanel>
 
-      <style jsx>{`
+      <style>{`
         .data-management-modal {
           position: fixed;
           top: 0;

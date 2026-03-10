@@ -1,9 +1,12 @@
 /**
  * Decorative SVG Paddles
  * Visual elements for the main menu
+ * Memoized for performance
  */
 
-export function LeftPaddle() {
+import { memo } from 'react';
+
+export const LeftPaddle = memo(function LeftPaddle() {
   return (
     <svg
       width="180"
@@ -73,9 +76,9 @@ export function LeftPaddle() {
       </g>
     </svg>
   );
-}
+});
 
-export function RightPaddle() {
+export const RightPaddle = memo(function RightPaddle() {
   return (
     <svg
       width="180"
@@ -145,4 +148,4 @@ export function RightPaddle() {
       </g>
     </svg>
   );
-}
+});

@@ -210,7 +210,7 @@ export class LevelEditorRenderer {
   }
 
   private renderPlacedObject(obj: PlacedObject) {
-    const { type, position, data, selected } = obj;
+    const { type, data, selected } = obj;
 
     this.ctx.save();
 
@@ -220,24 +220,24 @@ export class LevelEditorRenderer {
       case 'block-target':
       case 'block-explosive':
       case 'block-immovable':
-        this.renderBlock(data as Block, type);
+        this.renderBlock(data as Block);
         break;
 
       case 'portal-cyan':
       case 'portal-magenta':
-        this.renderPortal(data as Portal, selected);
+        this.renderPortal(data as Portal, !!selected);
         break;
 
       case 'bounce-pad':
-        this.renderBouncePad(data as BouncePad, selected);
+        this.renderBouncePad(data as BouncePad, !!selected);
         break;
 
       case 'gravity-zone':
-        this.renderGravityZone(data as GravityZone, selected);
+        this.renderGravityZone(data as GravityZone, !!selected);
         break;
 
       case 'paddle':
-        this.renderPaddle(data as Paddle, selected);
+        this.renderPaddle(data as Paddle, !!selected);
         break;
     }
 
@@ -249,7 +249,7 @@ export class LevelEditorRenderer {
     this.ctx.restore();
   }
 
-  private renderBlock(block: Block, type: string) {
+  private renderBlock(block: Block) {
     const { x, y, width, height, type: blockType } = block;
 
     // Set color based on block type
@@ -348,7 +348,7 @@ export class LevelEditorRenderer {
   }
 
   private renderBouncePad(bouncePad: BouncePad, selected: boolean) {
-    const { x, y, width, height, angle, power } = bouncePad;
+    const { x, y, width, height, angle, power: _power } = bouncePad;
 
     this.ctx.save();
     this.ctx.translate(x + width / 2, y + height / 2);
@@ -564,7 +564,7 @@ export class LevelEditorRenderer {
     this.ctx.restore();
   }
 
-  private renderToolbar(state: EditorState) {
+  private renderToolbar(_state: EditorState) {
     // This would render the toolbar buttons
     // Implementation would depend on the specific toolbar design
   }
@@ -645,13 +645,13 @@ function createTempPlacedObject(tool: string, position: { x: number; y: number }
   };
 }
 
-function checkObjectOverlap(obj: PlacedObject, existingObjects: PlacedObject[]): boolean {
+function checkObjectOverlap(_obj: PlacedObject, _existingObjects: PlacedObject[]): boolean {
   // Check if object overlaps with existing objects
   // Simplified implementation - would need full collision detection
   return false;
 }
 
-function getToolInfo(toolId: string): { name: string } | undefined {
+function getToolInfo(_toolId: string): { name: string } | undefined {
   // Get tool information
   // This would use the EDITOR_TOOLS array
   return undefined;

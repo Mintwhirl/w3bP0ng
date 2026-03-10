@@ -487,6 +487,55 @@ export const LEVEL_8: Level = {
 };
 
 // ═══════════════════════════════════════════════════════════
+// LEVEL 9: PORTAL MAZE
+// ═══════════════════════════════════════════════════════════
+
+export const LEVEL_9: Level = {
+  id: 9,
+  name: 'Quantum Labyrinth',
+  description: 'Navigate the complex portal network',
+  difficulty: 5,
+  starThresholds: { time: 100, hits: 45 },
+  blocks: [
+    { x: 550, y: 50, width: 100, height: 30, type: 'target', health: 1, active: true },
+    { x: 100, y: 50, width: 60, height: 30, type: 'tough', health: 3, active: true },
+    { x: 1000, y: 50, width: 60, height: 30, type: 'tough', health: 3, active: true },
+    { x: 550, y: 400, width: 100, height: 100, type: 'immovable', health: 999, active: true },
+  ],
+  portals: [
+    { id: 'p9-1', x: 150, y: 700, radius: 30, linkedTo: 'p9-2', color: 'cyan', rotation: -Math.PI/2, active: true },
+    { id: 'p9-2', x: 150, y: 150, radius: 30, linkedTo: 'p9-1', color: 'cyan', rotation: Math.PI/2, active: true },
+    { id: 'p9-3', x: 950, y: 700, radius: 30, linkedTo: 'p9-4', color: 'magenta', rotation: -Math.PI/2, active: true },
+    { id: 'p9-4', x: 950, y: 150, radius: 30, linkedTo: 'p9-3', color: 'magenta', rotation: Math.PI/2, active: true },
+  ],
+  goal: { type: 'destroy_targets' },
+  ballSpeed: 5.5,
+};
+
+// ═══════════════════════════════════════════════════════════
+// LEVEL 10: ZERO GRAVITY FINALE
+// ═══════════════════════════════════════════════════════════
+
+export const LEVEL_10: Level = {
+  id: 10,
+  name: 'Event Horizon',
+  description: 'The final frontier of physics',
+  difficulty: 5,
+  starThresholds: { time: 120, hits: 50 },
+  blocks: [
+    { x: 600, y: 100, width: 80, height: 80, type: 'target', health: 1, active: true },
+    { x: 200, y: 200, width: 60, height: 30, type: 'explosive', health: 1, active: true },
+    { x: 1000, y: 200, width: 60, height: 30, type: 'explosive', health: 1, active: true },
+  ],
+  portals: [],
+  gravityZones: [
+    { x: 0, y: 0, width: 1200, height: 800, strength: 0.1, direction: 'up' }
+  ],
+  goal: { type: 'destroy_all' },
+  ballSpeed: 6,
+};
+
+// ═══════════════════════════════════════════════════════════
 // LEVEL COLLECTION
 // ═══════════════════════════════════════════════════════════
 
@@ -499,6 +548,8 @@ export const LEVELS: Level[] = [
   LEVEL_6,
   LEVEL_7,
   LEVEL_8,
+  LEVEL_9,
+  LEVEL_10,
 ];
 
 export function getLevel(levelId: number): Level | null {

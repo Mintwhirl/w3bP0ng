@@ -1,31 +1,64 @@
 /**
  * Settings Panel Component
- * Modal panel for game settings (sound, theme, etc.)
+ * Modal panel for game settings (sound, theme, accessibility)
+ * Optimized for performance and accessibility
  */
 
+import { memo, useEffect } from 'react';
 import { useGameStore } from '../hooks/useGameStore';
 import { THEMES } from '../rendering/types';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import './SettingsPanel.css';
 
-export default function SettingsPanel() {
-  const { settingsPanelOpen, soundEnabled, currentTheme, toggleSound, setTheme, toggleSettingsPanel } = useGameStore();
+const THEME_OPTIONS = Object.keys(THEMES);
+
+const SettingsPanel = memo(function SettingsPanel() {
+  const {
+    settingsPanelOpen,
+    soundEnabled,
+    currentTheme,
+    reducedMotion,
+    toggleSound,
+    setTheme,
+    updateSettings,
+    toggleSettingsPanel
+  } = useGameStore();
+
+  // Focus trap for modal accessibility
+  const containerRef = useFocusTrap(settingsPanelOpen);
+
+  // Escape key support
+  useEffect(() => {
+    if (!settingsPanelOpen) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        toggleSettingsPanel();
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [settingsPanelOpen, toggleSettingsPanel]);
 
   if (!settingsPanelOpen) {
     return null;
   }
 
-  const themeOptions = Object.keys(THEMES);
-
   return (
-    <div className="settings-overlay" onClick={toggleSettingsPanel}>
+    <div 
+      className="settings-overlay" 
+      onClick={toggleSettingsPanel}
+      role="presentation"
+    >
       <div
-        className="settings-panel"
+        ref={containerRef as any}
+        className="settings-panel animate-slideUp"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-labelledby="settings-title"
         aria-modal="true"
       >
-        {/* Header */}
         <header className="settings-header">
           <h2 id="settings-title" className="settings-title">Settings</h2>
           <button
@@ -37,29 +70,47 @@ export default function SettingsPanel() {
           </button>
         </header>
 
-        {/* Settings Content */}
         <div className="settings-content">
-          {/* Sound Toggle */}
-          <div className="settings-section">
-            <h3 className="settings-section-title">Audio</h3>
-            <label className="settings-toggle">
-              <span className="settings-label">Sound Effects</span>
+          {/* Audio Section */}
+          <section className="settings-section" aria-labelledby="audio-heading">
+            <h3 id="audio-heading" className="settings-section-title">Audio</h3>
+            <div className="settings-row">
+              <span className="settings-label" id="sfx-label">Sound Effects</span>
               <button
                 className={`toggle-button ${soundEnabled ? 'toggle-button--on' : 'toggle-button--off'}`}
                 onClick={toggleSound}
-                aria-label={`Sound ${soundEnabled ? 'enabled' : 'disabled'}`}
+                aria-labelledby="sfx-label"
                 aria-pressed={soundEnabled}
+                role="switch"
               >
                 <span className="toggle-slider"></span>
               </button>
-            </label>
-          </div>
+            </div>
+          </section>
 
-          {/* Theme Selection */}
-          <div className="settings-section">
-            <h3 className="settings-section-title">Visual Theme</h3>
-            <div className="theme-selector">
-              {themeOptions.map((themeId) => {
+          {/* Accessibility Section */}
+          <section className="settings-section" aria-labelledby="access-heading">
+            <h3 id="access-heading" className="settings-section-title">Accessibility</h3>
+            <div className="settings-row">
+              <span className="settings-label" id="motion-label">Reduced Motion</span>
+              <button
+                className={`toggle-button ${reducedMotion ? 'toggle-button--on' : 'toggle-button--off'}`}
+                onClick={() => updateSettings({ reducedMotion: !reducedMotion })}
+                aria-labelledby="motion-label"
+                aria-pressed={reducedMotion}
+                role="switch"
+              >
+                <span className="toggle-slider"></span>
+              </button>
+            </div>
+            <p className="settings-hint">Reduces visual noise and slows down background animations.</p>
+          </section>
+
+          {/* Theme Section */}
+          <section className="settings-section" aria-labelledby="theme-heading">
+            <h3 id="theme-heading" className="settings-section-title">Visual Theme</h3>
+            <div className="theme-selector" role="radiogroup" aria-labelledby="theme-heading">
+              {THEME_OPTIONS.map((themeId) => {
                 const theme = THEMES[themeId];
                 if (!theme) return null;
                 const isActive = currentTheme === themeId;
@@ -67,33 +118,37 @@ export default function SettingsPanel() {
                 return (
                   <button
                     key={themeId}
-                    className={`theme-option ${isActive ? 'theme-option--active' : ''}`}
+                    className={`theme-option ${isActive ? 'theme-option--active' : ''} ${themeId === 'high-contrast' ? 'theme-option--hc' : ''}`}
                     onClick={() => setTheme(themeId)}
                     aria-label={`Select ${theme.name} theme`}
-                    aria-pressed={isActive}
+                    aria-checked={isActive}
+                    role="radio"
                   >
                     <div className="theme-preview" style={{
-                      background: `linear-gradient(135deg, ${theme.paddle.left.color}, ${theme.paddle.right.color})`
-                    }}></div>
+                      background: themeId === 'high-contrast' 
+                        ? '#000' 
+                        : `linear-gradient(135deg, ${theme.paddle.left.color}, ${theme.paddle.right.color})`,
+                      border: themeId === 'high-contrast' ? '2px solid #fff' : 'none'
+                    }} aria-hidden="true"></div>
                     <span className="theme-name">{theme.name}</span>
-                    {isActive && <span className="theme-checkmark">✓</span>}
+                    {isActive && <span className="theme-checkmark" aria-hidden="true">✓</span>}
                   </button>
                 );
               })}
             </div>
-          </div>
+          </section>
 
-          {/* Info Section */}
-          <div className="settings-section">
-            <h3 className="settings-section-title">About</h3>
+          <footer className="settings-footer">
             <p className="settings-info">
               <strong>w3bP0ng v0.1.0</strong>
               <br />
               A modern multi-mode web game showcasing professional TypeScript, React, and WebGL development.
             </p>
-          </div>
+          </footer>
         </div>
       </div>
     </div>
   );
-}
+});
+
+export default SettingsPanel;

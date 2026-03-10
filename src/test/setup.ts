@@ -7,85 +7,73 @@ afterEach(() => {
   cleanup();
 });
 
-// Mock Web Audio API for testing
-global.AudioContext = vi.fn().mockImplementation(() => ({
-  createOscillator: vi.fn(() => ({
-    connect: vi.fn(),
-    start: vi.fn(),
-    stop: vi.fn(),
-    frequency: {
-      setValueAtTime: vi.fn(),
-      exponentialRampToValueAtTime: vi.fn(),
-    },
+// Mock matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(), // deprecated
+    removeListener: vi.fn(), // deprecated
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
   })),
-  createGain: vi.fn(() => ({
-    connect: vi.fn(),
-    gain: {
-      setValueAtTime: vi.fn(),
-      linearRampToValueAtTime: vi.fn(),
-      exponentialRampToValueAtTime: vi.fn(),
-    },
-  })),
-  createBiquadFilter: vi.fn(() => ({
-    connect: vi.fn(),
-    type: '',
-    frequency: {
-      setValueAtTime: vi.fn(),
-    },
-    Q: {
-      setValueAtTime: vi.fn(),
-    },
-  })),
-  currentTime: 0,
-  destination: {},
-  state: 'running',
-  resume: vi.fn().mockResolvedValue(undefined),
-  close: vi.fn().mockResolvedValue(undefined),
-})) as any;
-
-// Mock requestAnimationFrame for game loop testing
-global.requestAnimationFrame = vi.fn((callback) => {
-  setTimeout(callback, 16); // Simulate 60fps
-  return 1;
 });
 
-global.cancelAnimationFrame = vi.fn();
+// Mock Web Audio API
+if (typeof window !== 'undefined') {
+  (window as any).AudioContext = vi.fn().mockImplementation(() => ({
+    createOscillator: vi.fn(() => ({
+      connect: vi.fn(),
+      start: vi.fn(),
+      stop: vi.fn(),
+      frequency: { value: 0, setValueAtTime: vi.fn() },
+    })),
+    createGain: vi.fn(() => ({
+      connect: vi.fn(),
+      gain: { value: 0, setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn() },
+    })),
+    destination: {},
+    currentTime: 0,
+    resume: vi.fn().mockResolvedValue(undefined),
+    suspend: vi.fn().mockResolvedValue(undefined),
+    close: vi.fn().mockResolvedValue(undefined),
+  }));
+}
 
-// Mock performance.now for consistent timing in tests
-const mockPerformanceNow = vi.fn(() => Date.now());
-global.performance.now = mockPerformanceNow;
-
-// Mock HTMLCanvasElement and 2D context for rendering tests
-if (typeof HTMLCanvasElement !== 'undefined') {
-  HTMLCanvasElement.prototype.getContext = vi.fn(function(contextId: string) {
+// Mock Canvas API
+if (typeof window !== 'undefined') {
+  HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId) => {
     if (contextId === '2d') {
       return {
-        fillStyle: '',
-        strokeStyle: '',
-        lineWidth: 1,
-        font: '',
-        textAlign: 'left',
-        globalAlpha: 1,
-        shadowColor: '',
-        shadowBlur: 0,
         fillRect: vi.fn(),
         clearRect: vi.fn(),
-        strokeRect: vi.fn(),
-        fillText: vi.fn(),
+        getImageData: vi.fn(() => ({ data: new Uint8ClampedArray() })),
+        putImageData: vi.fn(),
+        createImageData: vi.fn(() => ({ data: new Uint8ClampedArray() })),
+        setTransform: vi.fn(),
+        drawImage: vi.fn(),
+        save: vi.fn(),
+        restore: vi.fn(),
         beginPath: vi.fn(),
         moveTo: vi.fn(),
         lineTo: vi.fn(),
+        closePath: vi.fn(),
+        stroke: vi.fn(),
+        translate: vi.fn(),
+        scale: vi.fn(),
+        rotate: vi.fn(),
         arc: vi.fn(),
         fill: vi.fn(),
-        stroke: vi.fn(),
-        closePath: vi.fn(),
-        save: vi.fn(),
-        restore: vi.fn(),
-        translate: vi.fn(),
-        rotate: vi.fn(),
-        scale: vi.fn(),
+        measureText: vi.fn(() => ({ width: 0 })),
+        fillText: vi.fn(),
         setLineDash: vi.fn(),
         createLinearGradient: vi.fn(() => ({
+          addColorStop: vi.fn(),
+        })),
+        createRadialGradient: vi.fn(() => ({
           addColorStop: vi.fn(),
         })),
       } as any;

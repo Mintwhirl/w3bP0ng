@@ -4,6 +4,8 @@
  */
 
 import { useRef, useEffect, useState, useCallback } from 'react';
+import { checkAchievements } from '../core/achievements';
+import { ticker, TickerGroup } from '../engine/EngineTicker';
 import { GameRenderer } from '../rendering/GameRenderer';
 import { AudioManager } from '../audio/AudioManager';
 import { useTheme } from '../hooks/useTheme';
@@ -672,6 +674,7 @@ const PongGame = () => {
         setLeaderboardMode('gameEnd');
         setShowLeaderboard(true);
       }
+      checkAchievements();
     } else if (gameState.score.right >= 11) {
       gameState.gameWinner = 'right';
       audioManagerRef.current?.playVictory();
@@ -679,6 +682,7 @@ const PongGame = () => {
         setLeaderboardMode('gameEnd');
         setShowLeaderboard(true);
       }
+      checkAchievements();
     }
 
     checkLevelUp();
@@ -707,7 +711,19 @@ const PongGame = () => {
       localStorage.setItem('pong-leaderboard', JSON.stringify(scores));
       setLeaderboardScores(scores);
     } catch (error) {
-      console.warn('Failed to save leaderboard:', error);
+      if (error instanceof Error && 
+          (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+        console.error('CRITICAL: Leaderboard quota exceeded! Trimming scores.');
+        const trimmed = scores.slice(0, 5); // Keep only top 5
+        try {
+          localStorage.setItem('pong-leaderboard', JSON.stringify(trimmed));
+          setLeaderboardScores(trimmed);
+        } catch (e) {
+          localStorage.removeItem('pong-leaderboard');
+        }
+      } else {
+        console.warn('Failed to save leaderboard:', error);
+      }
     }
   }, []);
 
@@ -953,61 +969,49 @@ const PongGame = () => {
     rendererRef.current.render(renderState);
   }, []);
 
-  // Game loop
-  const gameLoop = useCallback(() => {
-    try {
-      if (!gameStarted || !gameStateRef.current) return;
-
-      const metrics = performanceMetrics.current;
-      const now = performance.now();
-
-      // Limit to 60fps
-      if (now - metrics.lastFrameTime < 16.67) {
-        animationFrameRef.current = requestAnimationFrame(gameLoop);
-        return;
-      }
-
-      // Update game state
-      updateGame();
-
-      // Render
-      renderGame();
-
-      // Memory management
-      metrics.frameCount++;
-      metrics.lastFrameTime = now;
-
-      if (metrics.frameCount % 3600 === 0) {
-        const gameState = gameStateRef.current;
-        if (gameState.ball.trail.length > 100) {
-          gameState.ball.trail = gameState.ball.trail.slice(-50);
-        }
-      }
-
-      animationFrameRef.current = requestAnimationFrame(gameLoop);
-    } catch (error) {
-      console.error('Game loop error:', error);
-      setGameStarted(false);
-    }
-  }, [gameStarted, updateGame, renderGame]);
-
-  // Start/stop game loop
+  // Start/stop game loop using centralized ticker
   useEffect(() => {
-    if (gameStarted) {
-      animationFrameRef.current = requestAnimationFrame(gameLoop);
-    } else {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
+    if (!gameStarted) return;
+
+    const tickerId = `classic-game-${Math.random().toString(36).substr(2, 9)}`;
+    
+    const unregister = ticker.register(tickerId, () => {
+      try {
+        if (!gameStateRef.current) return;
+
+        // Update game state
+        updateGame();
+
+        // Render
+        renderGame();
+
+        // Memory management
+        const metrics = performanceMetrics.current;
+        metrics.frameCount++;
+        if (metrics.frameCount % 3600 === 0) {
+          const gameState = gameStateRef.current;
+          if (gameState.ball.trail.length > 100) {
+            gameState.ball.trail = gameState.ball.trail.slice(-50);
+          }
+        }
+      } catch (error) {
+        console.error('Game loop error:', error);
+        setGameStarted(false);
+        checkAchievements();
       }
-    }
+    }, TickerGroup.GAME);
 
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+      unregister();
     };
-  }, [gameStarted, gameLoop]);
+  }, [gameStarted, updateGame, renderGame]);
+
+  // Check achievements on game end
+  useEffect(() => {
+    if (gameStateRef.current.gameWinner) {
+      checkAchievements();
+    }
+  }, [gameStateRef.current.gameWinner]);
 
   // Toggle AI
   const toggleAI = () => {

@@ -4,7 +4,7 @@
  * Implements W3BP0NG liquid glass synthwave aesthetic
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { unlockAudioOnUserGesture, isAudioReady } from '../audio/AudioEngine';
 import { GlassPanel, GlassButton } from './GlassHUD';
 import { ParticleBackground } from './ParticleBackground';
@@ -17,9 +17,8 @@ export default function TitleScreen({ onStart }: { onStart?: () => void }) {
   const { setMode } = useGameStore();
   const [ready, setReady] = useState(isAudioReady());
   const [showButton, setShowButton] = useState(false);
-  const [isHovering, setIsHovering] = useState(false);
+  const [isHovering, _setIsHovering] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
-  const [particlesActive, setParticlesActive] = useState(false);
 
   // Animation sequence
 
