@@ -1,7 +1,7 @@
 /**
  * RhythmMode Component
  * Beat-synchronized Pong with combo system
- * Optimized with centralized ticker, dynamic sizing, and robust save management
+ * Optimized with centralized ticker, responsive sizing, and audio integration
  */
 
 import { useRef, useEffect, useState, useCallback } from 'react';
@@ -29,6 +29,7 @@ import { ticker, TickerGroup } from '../engine/EngineTicker';
 import { updateRhythmScore, loadSaveData } from '../utils/saveManager';
 import { checkAchievements } from '../core/achievements';
 import { isAudioReady } from '../audio/AudioEngine';
+import { AudioManager } from '../audio/AudioManager';
 import type { RhythmGameState } from './rhythm-mode/types';
 import '../styles/glassmorphism.css';
 
@@ -38,9 +39,11 @@ type Difficulty = 'easy' | 'normal' | 'hard';
 export function RhythmMode() {
   const returnToMenu = useGameStore((state) => state.returnToMenu);
 
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameStateRef = useRef<RhythmGameState | null>(null);
   const beatSyncRef = useRef<BeatSync | null>(null);
+  const audioManagerRef = useRef<AudioManager | null>(null);
   const keysPressed = useRef<Set<string>>(new Set());
   
   const [difficulty, setDifficulty] = useState<Difficulty>('normal');
@@ -51,23 +54,11 @@ export function RhythmMode() {
   const [highScore, setHighScore] = useState(0);
   const [audioUnlocked, setAudioUnlocked] = useState(isAudioReady());
 
-  // Dimensions
-  const [canvasSize, setCanvasSize] = useState({ width: 1200, height: 800 });
-
-  const updateCanvasSize = useCallback(() => {
-    const width = Math.min(1200, window.innerWidth - 40);
-    const height = Math.min(800, window.innerHeight - 200);
-    setCanvasSize({ width, height });
-    
-    if (canvasRef.current) {
-      canvasRef.current.width = width;
-      canvasRef.current.height = height;
-    }
-    
-    if (gameStateRef.current) {
-      gameStateRef.current.canvas.width = width;
-      gameStateRef.current.canvas.height = height;
-    }
+  // Initialize AudioManager
+  useEffect(() => {
+    const manager = new AudioManager();
+    manager.initialize();
+    audioManagerRef.current = manager;
   }, []);
 
   // Poll for audio unlock
@@ -89,14 +80,30 @@ export function RhythmMode() {
     setHighScore(data.rhythmProgress.highScores[currentTrack.id] || 0);
   }, [difficulty]);
 
+  const updateCanvasSize = useCallback(() => {
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
+
+    const { width, height } = container.getBoundingClientRect();
+    canvas.width = width;
+    canvas.height = height;
+    
+    if (gameStateRef.current) {
+      gameStateRef.current.canvas.width = width;
+      gameStateRef.current.canvas.height = height;
+    }
+  }, []);
+
   const initializeGame = useCallback(() => {
+    if (!containerRef.current) return;
+    
+    // Ensure size is set before state creation
     updateCanvasSize();
+    const { width, height } = containerRef.current.getBoundingClientRect();
+
     const track = createDefaultTrack(difficulty);
     beatSyncRef.current = new BeatSync(track.bpm, track.duration);
-    
-    const width = Math.min(1200, window.innerWidth - 40);
-    const height = Math.min(800, window.innerHeight - 200);
-    
     gameStateRef.current = createInitialRhythmState(width, height, track);
     
     setDisplayScore(0);
@@ -114,70 +121,81 @@ export function RhythmMode() {
   useEffect(() => {
     if (gamePhase !== 'playing') return;
 
-    // Direct initialization
-    initializeGame();
-    
-    const tickerId = `rhythm-loop-${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Register immediately
-    const unregister = ticker.register(tickerId, (_currentTime, deltaTime) => {
-      const state = gameStateRef.current;
-      const beatSync = beatSyncRef.current;
-      const canvas = canvasRef.current;
-      if (!state || !beatSync || !canvas) return;
+    // Use requestAnimationFrame to ensure container has rendered its actual size
+    const initId = requestAnimationFrame(() => {
+      initializeGame();
+      
+      const tickerId = `rhythm-loop-${Math.random().toString(36).substr(2, 9)}`;
+      
+      ticker.register(tickerId, (_currentTime, deltaTime) => {
+        const state = gameStateRef.current;
+        const beatSync = beatSyncRef.current;
+        const canvas = canvasRef.current;
+        if (!state || !beatSync || !canvas) return;
 
-      // Update elapsed time
-      state.elapsedTime += deltaTime;
+        // Update elapsed time
+        state.elapsedTime += deltaTime;
 
-      const beatProgress = beatSync.getBeatProgress(state.elapsedTime);
-      const currentBeat = beatSync.getCurrentBeat(state.elapsedTime);
+        const beatProgress = beatSync.getBeatProgress(state.elapsedTime);
+        const currentBeat = beatSync.getCurrentBeat(state.elapsedTime);
 
-      // Controls
-      const upPressed = keysPressed.current.has('w') || keysPressed.current.has('arrowup');
-      const downPressed = keysPressed.current.has('s') || keysPressed.current.has('arrowdown');
-      state.paddle = updatePaddle(state.paddle, upPressed, downPressed, canvas.height, deltaTime / 16.67);
+        // Controls
+        const upPressed = keysPressed.current.has('w') || keysPressed.current.has('arrowup');
+        const downPressed = keysPressed.current.has('s') || keysPressed.current.has('arrowdown');
+        state.paddle = updatePaddle(state.paddle, upPressed, downPressed, canvas.height, deltaTime / 16.67);
 
-      // Physics
-      state.ball = updateBall(state.ball, deltaTime / 16.67);
-      state.ball = checkWallCollisions(state.ball, canvas.width, canvas.height);
+        // Physics
+        state.ball = updateBall(state.ball, deltaTime / 16.67);
+        state.ball = checkWallCollisions(state.ball, canvas.width, canvas.height);
 
-      // Hit processing
-      if (checkPaddleCollision(state.ball, state.paddle)) {
-        const accuracy = beatSync.checkHitTiming(state.elapsedTime, currentBeat);
-        const newState = processHit(state, accuracy);
-        newState.ball = applyPaddleBounce(newState.ball, newState.paddle);
-        gameStateRef.current = newState;
-        
-        setDisplayScore(newState.score);
-        setDisplayCombo(newState.combo);
-        setLastHitRating({ rating: accuracy.toUpperCase(), id: Date.now() });
-      }
+        // Hit processing
+        if (checkPaddleCollision(state.ball, state.paddle)) {
+          const accuracy = beatSync.checkHitTiming(state.elapsedTime, currentBeat);
+          const newState = processHit(state, accuracy);
+          newState.ball = applyPaddleBounce(newState.ball, newState.paddle);
+          gameStateRef.current = newState;
+          
+          setDisplayScore(newState.score);
+          setDisplayCombo(newState.combo);
+          setLastHitRating({ rating: accuracy.toUpperCase(), id: Date.now() });
 
-      // Miss processing
-      if (state.ball.x + state.ball.radius < 0) {
-        state.ball = resetBall(canvas.width, canvas.height);
-        state.combo = 0;
-        state.missedBeats = (state.missedBeats || 0) + 1;
-        setDisplayCombo(0);
-        setLastHitRating({ rating: 'MISS', id: Date.now() });
-      }
+          // Play Audio
+          if (accuracy === 'perfect') {
+            audioManagerRef.current?.playPowerUp(); // Use powerup sound for perfect hits
+          } else if (accuracy === 'good') {
+            audioManagerRef.current?.playPaddleHit(8);
+          }
+        }
 
-      // Track completion
-      if (state.elapsedTime >= state.track.duration * 1000) {
-        updateRhythmScore(state.track.id, state.score, state.combo);
-        checkAchievements();
-        setGamePhase('complete');
-        return;
-      }
+        // Miss processing
+        if (state.ball.x + state.ball.radius < 0) {
+          state.ball = resetBall(canvas.width, canvas.height);
+          state.combo = 0;
+          state.missedBeats = (state.missedBeats || 0) + 1;
+          setDisplayCombo(0);
+          setLastHitRating({ rating: 'MISS', id: Date.now() });
+          
+          audioManagerRef.current?.playScore(); // Miss sound
+        }
 
-      // Render
-      const ctx = canvas.getContext('2d');
-      if (ctx) renderRhythmGame(ctx, state, beatProgress);
-    }, TickerGroup.GAME);
+        // Track completion
+        if (state.elapsedTime >= state.track.duration * 1000) {
+          updateRhythmScore(state.track.id, state.score, state.combo);
+          checkAchievements();
+          setGamePhase('complete');
+          audioManagerRef.current?.playVictory();
+          return;
+        }
 
-    return () => {
-      unregister();
-    };
+        // Render
+        const ctx = canvas.getContext('2d');
+        if (ctx) renderRhythmGame(ctx, state, beatProgress);
+      }, TickerGroup.GAME);
+
+      return () => ticker.unregister(tickerId);
+    });
+
+    return () => cancelAnimationFrame(initId);
   }, [gamePhase, initializeGame]);
 
   useEffect(() => {
@@ -214,23 +232,16 @@ export function RhythmMode() {
   };
 
   return (
-    <div className="rhythm-mode cosmic-bg full-bleed">
+    <div className="rhythm-mode-container" ref={containerRef}>
       <canvas 
         ref={canvasRef} 
-        width={canvasSize.width}
-        height={canvasSize.height}
-        className="game-canvas"
-        style={{ 
-          display: gamePhase === 'playing' || gamePhase === 'paused' ? 'block' : 'none',
-          boxShadow: '0 0 40px rgba(168, 85, 247, 0.2)',
-          border: '1px solid rgba(168, 85, 247, 0.3)',
-          borderRadius: '8px'
-        }} 
+        className="rhythm-canvas"
+        style={{ display: gamePhase === 'playing' || gamePhase === 'paused' ? 'block' : 'none' }} 
       />
 
       {/* HUD */}
       {(gamePhase === 'playing' || gamePhase === 'paused') && gameStateRef.current && (
-        <>
+        <div className="rhythm-hud">
           <ScoreDisplay label="SCORE" value={displayScore} position="left" neonAccent="cyan" />
           <div className="combo-container">
             <span className="combo-value">×{displayCombo}</span>
@@ -246,67 +257,96 @@ export function RhythmMode() {
             { label: 'Good', value: gameStateRef.current.goodHits },
             { label: 'High Score', value: highScore },
           ]} />
-        </>
+        </div>
       )}
 
       {/* Menu */}
       {gamePhase === 'menu' && (
-        <GlassPanel variant="elevated" neonAccent="cyan" className="rhythm-menu animate-slideUp">
-          <h1 className="text-glow-primary">RHYTHM BEATS</h1>
-          <p className="text-glow-subtle">Sync your hits with the pulse</p>
-          
-          <div className="difficulty-sel">
-            {(['easy', 'normal', 'hard'] as Difficulty[]).map(d => (
-              <GlassButton key={d} variant={difficulty === d ? 'primary' : 'secondary'} onClick={() => setDifficulty(d)}>
-                {d.toUpperCase()}
-              </GlassButton>
-            ))}
-          </div>
-          
-          <p className="track-info">
-            {difficulty === 'easy' && 'Chill Vibes • 90 BPM'}
-            {difficulty === 'normal' && 'Synth Pulse • 120 BPM'}
-            {difficulty === 'hard' && 'Cyber Overdrive • 160 BPM'}
-          </p>
+        <div className="overlay-wrapper">
+          <GlassPanel variant="elevated" neonAccent="cyan" className="rhythm-menu animate-slideUp">
+            <h1 className="text-glow-primary">RHYTHM BEATS</h1>
+            <p className="text-glow-subtle">Sync your hits with the pulse</p>
+            
+            <div className="difficulty-sel">
+              {(['easy', 'normal', 'hard'] as Difficulty[]).map(d => (
+                <GlassButton key={d} variant={difficulty === d ? 'primary' : 'secondary'} onClick={() => setDifficulty(d)}>
+                  {d.toUpperCase()}
+                </GlassButton>
+              ))}
+            </div>
+            
+            <p className="track-info">
+              {difficulty === 'easy' && 'Chill Vibes • 90 BPM'}
+              {difficulty === 'normal' && 'Synth Pulse • 120 BPM'}
+              {difficulty === 'hard' && 'Cyber Overdrive • 160 BPM'}
+            </p>
 
-          <div className="menu-actions">
-            {!audioUnlocked ? (
-              <p className="audio-warning">Please click anywhere to enable audio first</p>
-            ) : (
-              <GlassButton variant="primary" onClick={handleStart} size="large">
-                START PERFORMANCE
-              </GlassButton>
-            )}
-            <GlassButton onClick={handleExit}>EXIT</GlassButton>
-          </div>
-        </GlassPanel>
+            <div className="menu-actions">
+              {!audioUnlocked ? (
+                <p className="audio-warning">Please click anywhere to enable audio first</p>
+              ) : (
+                <GlassButton variant="primary" onClick={handleStart} size="large">
+                  START PERFORMANCE
+                </GlassButton>
+              )}
+              <GlassButton onClick={handleExit}>EXIT</GlassButton>
+            </div>
+          </GlassPanel>
+        </div>
       )}
 
       {gamePhase === 'paused' && <PauseOverlay onResume={() => setGamePhase('playing')} onExit={handleExit} />}
 
       {/* Complete */}
       {gamePhase === 'complete' && gameStateRef.current && (
-        <GlassPanel variant="elevated" neonAccent="magenta" className="completion-panel animate-fadeIn">
-          <h1 className="text-glow-primary">PERFORMANCE COMPLETE</h1>
-          <div className="final-stats">
-            <div className="stat-row"><span>Final Score</span><span className="val">{displayScore.toLocaleString()}</span></div>
-            <div className="stat-row"><span>Accuracy</span><span className="val">{calculateAccuracy()}%</span></div>
-            <div className="stat-row"><span>Max Combo</span><span className="val">×{gameStateRef.current.combo}</span></div>
-          </div>
-          <div className="menu-actions">
-            <GlassButton variant="primary" onClick={handleStart}>REPLAY</GlassButton>
-            <GlassButton onClick={handleExit}>EXIT</GlassButton>
-          </div>
-        </GlassPanel>
+        <div className="overlay-wrapper">
+          <GlassPanel variant="elevated" neonAccent="magenta" className="completion-panel animate-fadeIn">
+            <h1 className="text-glow-primary">PERFORMANCE COMPLETE</h1>
+            <div className="final-stats">
+              <div className="stat-row"><span>Final Score</span><span className="val">{displayScore.toLocaleString()}</span></div>
+              <div className="stat-row"><span>Accuracy</span><span className="val">{calculateAccuracy()}%</span></div>
+              <div className="stat-row"><span>Max Combo</span><span className="val">×{gameStateRef.current.combo}</span></div>
+            </div>
+            <div className="menu-actions">
+              <GlassButton variant="primary" onClick={handleStart}>REPLAY</GlassButton>
+              <GlassButton onClick={handleExit}>EXIT</GlassButton>
+            </div>
+          </GlassPanel>
+        </div>
       )}
 
       <style>{`
-        .rhythm-mode {
+        .rhythm-mode-container {
+          width: 100%;
+          height: 100%;
+          position: relative;
+          background: #0b001a;
+          overflow: hidden;
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 100vw;
-          height: 100vh;
+        }
+        .rhythm-canvas {
+          max-width: 100%;
+          max-height: 100%;
+          box-shadow: 0 0 40px rgba(168, 85, 247, 0.2);
+          border: 1px solid rgba(168, 85, 247, 0.3);
+          border-radius: 8px;
+        }
+        .overlay-wrapper {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          pointer-events: none;
+          z-index: 100;
+        }
+        .overlay-wrapper > * {
+          pointer-events: auto;
         }
         .combo-container {
           position: absolute;
@@ -349,10 +389,6 @@ export function RhythmMode() {
         .rhythm-menu, .completion-panel { 
           padding: 40px !important; 
           text-align: center;
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
           min-width: 450px;
         }
         .menu-actions { display: flex; flex-direction: column; gap: 15px; }
