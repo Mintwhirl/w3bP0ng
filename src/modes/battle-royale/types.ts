@@ -32,6 +32,7 @@ export interface Player {
   color: string;
   score: number;
   alive: boolean;
+  isHuman: boolean;
   paddle: PaddleConfig;
 }
 

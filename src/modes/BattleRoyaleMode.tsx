@@ -4,7 +4,6 @@
  * Optimized with centralized ticker and secure save management
  */
 
-import { W3BP0NG_THEME } from '../../w3bp0ng-theme.config';
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useGameStore } from '../hooks/useGameStore';
 import {
@@ -20,7 +19,6 @@ import {
   createInitialBattleRoyaleState,
   updateBattleRoyaleState,
   getCurrentBPM,
-  isInFinalePhase,
   getFinaleIntensity,
 } from './battle-royale/BattleRoyaleEngine';
 import { updateBattleRoyaleStats, loadSaveData } from '../utils/saveManager';
@@ -68,7 +66,7 @@ export function BattleRoyaleMode() {
     initializeGame();
     const id = `battle-loop-${Math.random().toString(36).substr(2, 9)}`;
     
-    const unregister = ticker.register(id, (currentTime, deltaTime) => {
+    const unregister = ticker.register(id, (_currentTime, deltaTime) => {
       if (!gameStateRef.current || !beatSyncRef.current || !canvasRef.current) return;
       const state = gameStateRef.current;
       const beatSync = beatSyncRef.current;
@@ -100,10 +98,13 @@ export function BattleRoyaleMode() {
       // Win Condition
       if (updatedState.winner) {
         // Save stats securely
-        const isPlayerWinner = updatedState.winner.isPlayer;
+        const isPlayerWinner = updatedState.winner.isHuman;
         // In this mode, let's assume player is index 0 for stats
         const player = updatedState.players[0];
-        updateBattleRoyaleStats(isPlayerWinner, player.score, 0); // Simplified for now
+        if (player) {
+          updateBattleRoyaleStats(isPlayerWinner, player.score, 0);
+        }
+        checkAchievements();
         setGamePhase('complete');
         return;
       }

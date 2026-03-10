@@ -17,7 +17,7 @@ const MainMenu = memo(function MainMenu() {
   const setMode = useGameStore((state) => state.setMode);
   const toggleSettingsPanel = useGameStore((state) => state.toggleSettingsPanel);
   const [showAbout, setShowAbout] = useState(false);
-  const [activeIndex, setActiveAtindex] = useState(-1);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const modeCardsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
   const handleModeSelect = useCallback((modeId: GameMode, available: boolean) => {
@@ -39,22 +39,23 @@ const MainMenu = memo(function MainMenu() {
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (showAbout) return;
 
-    const availableModes = GAME_MODES.filter(m => m.available);
-    const availableIndices = GAME_MODES.map((m, i) => m.available ? i : -1).filter(i => i !== -1);
+    const availableIndices = GAME_MODES
+      .map((m, i) => m.available ? i : -1)
+      .filter(i => i !== -1);
     
     let currentIdx = availableIndices.indexOf(activeIndex);
 
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
       e.preventDefault();
       const nextIdx = (currentIdx + 1) % availableIndices.length;
-      const targetIdx = availableIndices[nextIdx];
-      setActiveAtindex(targetIdx);
+      const targetIdx = availableIndices[nextIdx] as number;
+      setActiveIndex(targetIdx);
       modeCardsRef.current[targetIdx]?.focus();
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
       e.preventDefault();
       const nextIdx = (currentIdx - 1 + availableIndices.length) % availableIndices.length;
-      const targetIdx = availableIndices[nextIdx];
-      setActiveAtindex(targetIdx);
+      const targetIdx = availableIndices[nextIdx] as number;
+      setActiveIndex(targetIdx);
       modeCardsRef.current[targetIdx]?.focus();
     }
   }, [activeIndex, showAbout]);
@@ -98,10 +99,10 @@ const MainMenu = memo(function MainMenu() {
           {GAME_MODES.map((mode, index) => (
             <button
               key={mode.id}
-              ref={el => modeCardsRef.current[index] = el}
+              ref={el => { modeCardsRef.current[index] = el; }}
               className={`mode-card ${!mode.available ? 'mode-card--disabled' : ''} ${activeIndex === index ? 'mode-card--active' : ''}`}
               onClick={() => handleModeSelect(mode.id, mode.available)}
-              onFocus={() => setActiveAtindex(index)}
+              onFocus={() => setActiveIndex(index)}
               disabled={!mode.available}
               role="listitem"
               aria-label={`${mode.name} mode. ${mode.description}. ${mode.available ? 'Available' : 'Coming soon'}`}

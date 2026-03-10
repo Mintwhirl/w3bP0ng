@@ -79,7 +79,7 @@ describe('App Integration Tests', () => {
   describe('Mode Navigation', () => {
     it('should navigate to classic mode when clicking Classic Mode card', async () => {
       render(<App />);
-      const menu = await screen.findByTestId('main-menu');
+      await screen.findByTestId('main-menu');
       const btn = await screen.findByLabelText(/Classic Mode - Available/i);
       
       act(() => {

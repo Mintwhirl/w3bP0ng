@@ -429,6 +429,24 @@ export function meetsWCAG_AA(foreground: string, background: string, isLargeText
 }
 
 /**
+ * Theme accessibility validation
+ */
+export function validateThemeAccessibility(theme: Theme): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  const bg = '#0b001a'; // Default background color
+
+  if (!meetsWCAG_AA(theme.paddle.left.color, bg)) errors.push('Left paddle contrast too low');
+  if (!meetsWCAG_AA(theme.paddle.right.color, bg)) errors.push('Right paddle contrast too low');
+  if (!meetsWCAG_AA(theme.ball.color, bg)) errors.push('Ball contrast too low');
+  if (!meetsWCAG_AA(theme.score.color, bg)) errors.push('Score contrast too low');
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
  * Apply theme as CSS variables to document root
  */
 export function applyThemeAsCSSVariables(theme: Theme): void {

@@ -101,7 +101,7 @@ const PlacedObjectSchema = z.object({
   id: z.string(),
   type: z.string(),
   position: z.object({ x: z.number(), y: z.number() }),
-  data: z.record(z.any()),
+  data: z.record(z.string(), z.any()),
   selected: z.boolean().optional(),
 });
 
@@ -129,6 +129,10 @@ const EditorStateSchema = z.object({
   canvas: z.object({
     width: z.number(),
     height: z.number(),
+  }),
+  history: z.object({
+    states: z.array(z.any()),
+    currentIndex: z.number(),
   }),
 });
 
@@ -165,7 +169,6 @@ export function initializeStorage(): LevelStorage {
   try {
     let rawStorage: any = null;
 
-    // 1. Try modern protected storage
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
@@ -175,39 +178,28 @@ export function initializeStorage(): LevelStorage {
       }
     }
 
-    // 2. Try backup
     if (!rawStorage) {
       const backup = localStorage.getItem(BACKUP_KEY);
       if (backup) {
         try {
           rawStorage = JSON.parse(deobfuscate(backup));
-        } catch (e) {
-          console.warn('Level backup corrupted');
-        }
+        } catch (e) {}
       }
     }
 
-    // 3. Try legacy
     if (!rawStorage) {
       const legacy = localStorage.getItem(LEGACY_KEY);
       if (legacy) {
         try {
           rawStorage = JSON.parse(legacy);
-          console.log('Migrated legacy level data');
-        } catch (e) {
-          console.warn('Legacy level data invalid');
-        }
+        } catch (e) {}
       }
     }
 
     if (!rawStorage) {
       const emptyStorage: LevelStorage = {
         levels: {},
-        metadata: {
-          totalLevels: 0,
-          lastModified: Date.now(),
-          version: STORAGE_VERSION,
-        },
+        metadata: { totalLevels: 0, lastModified: Date.now(), version: STORAGE_VERSION },
       };
       saveStorage(emptyStorage);
       return emptyStorage;
@@ -218,13 +210,9 @@ export function initializeStorage(): LevelStorage {
       return migrateStorage(rawStorage);
     }
 
-    return result.data;
+    return result.data as any;
   } catch (error) {
-    console.error('Failed to initialize level storage:', error);
-    return {
-      levels: {},
-      metadata: { totalLevels: 0, lastModified: Date.now(), version: STORAGE_VERSION },
-    };
+    return { levels: {}, metadata: { totalLevels: 0, lastModified: Date.now(), version: STORAGE_VERSION } };
   }
 }
 
@@ -242,7 +230,7 @@ function migrateStorage(storage: any): LevelStorage {
     Object.entries(storage.levels).forEach(([name, level]: [string, any]) => {
       const result = CustomLevelSchema.safeParse(level);
       if (result.success) {
-        migratedStorage.levels[name] = result.data;
+        migratedStorage.levels[name] = result.data as any;
       }
     });
   }
@@ -255,14 +243,9 @@ function migrateStorage(storage: any): LevelStorage {
 function saveStorage(storage: LevelStorage): void {
   try {
     const result = LevelStorageSchema.safeParse(storage);
-    if (!result.success) {
-      console.error('Invalid level storage:', result.error);
-      return;
-    }
+    if (!result.success) return;
 
     const protectedData = obfuscate(JSON.stringify(result.data));
-
-    // Backup current
     const current = localStorage.getItem(STORAGE_KEY);
     if (current) {
       try {
@@ -273,25 +256,16 @@ function saveStorage(storage: LevelStorage): void {
     try {
       localStorage.setItem(STORAGE_KEY, protectedData);
     } catch (quotaError) {
-      if (quotaError instanceof Error && 
-          (quotaError.name === 'QuotaExceededError' || quotaError.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
-        handleQuotaExceeded();
+      if (quotaError instanceof Error && (quotaError.name === 'QuotaExceededError' || quotaError.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+        localStorage.removeItem(BACKUP_KEY);
+        localStorage.removeItem(LEGACY_KEY);
       }
     }
-  } catch (error) {
-    console.error('Failed to save levels:', error);
-  }
-}
-
-function handleQuotaExceeded(): void {
-  try {
-    localStorage.removeItem(BACKUP_KEY);
-    localStorage.removeItem(LEGACY_KEY);
-  } catch (e) {}
+  } catch (error) {}
 }
 
 // ═══════════════════════════════════════════════════════════
-// LEVEL MANAGEMENT (Core logic remains the same, uses saveStorage)
+// LEVEL MANAGEMENT
 // ═══════════════════════════════════════════════════════════
 
 export function saveLevel(name: string, level: CustomLevel): boolean {
@@ -302,15 +276,20 @@ export function saveLevel(name: string, level: CustomLevel): boolean {
     }
 
     const zodResult = CustomLevelSchema.safeParse(level);
-    if (!zodResult.success) throw new Error('Schema invalid');
+    if (!zodResult.success) return false;
 
-    const validatedLevel = zodResult.data;
+    const validatedLevel = zodResult.data as any;
     const validation = validateLevel(validatedLevel);
-    if (!validation.valid) throw new Error('Logic invalid');
+    if (!validation.valid) return false;
 
     const storageLevel: CustomLevel = {
       ...validatedLevel,
-      metadata: { ...validatedLevel.metadata, name: name.trim(), modified: Date.now() },
+      metadata: { 
+        ...validatedLevel.metadata, 
+        author: validatedLevel.metadata.author || undefined,
+        name: name.trim(), 
+        modified: Date.now() 
+      },
     };
 
     storage.levels[name] = storageLevel;
@@ -320,7 +299,6 @@ export function saveLevel(name: string, level: CustomLevel): boolean {
     saveStorage(storage);
     return true;
   } catch (error) {
-    console.error('Failed to save level:', error);
     return false;
   }
 }
@@ -331,7 +309,7 @@ export function loadLevel(name: string): CustomLevel | null {
     const level = storage.levels[name];
     if (!level) return null;
     const result = CustomLevelSchema.safeParse(level);
-    return result.success ? result.data : null;
+    return result.success ? (result.data as any) : null;
   } catch (error) {
     return null;
   }
@@ -413,7 +391,7 @@ export function importLevel(levelData: string, name?: string): ImportResult {
     const rawData = JSON.parse(levelData);
     if (!rawData.levelData || !rawData.metadata) return { success: false, errors: ['Invalid format'] };
 
-    const customLevel: CustomLevel = {
+    const customLevel: any = {
       levelData: rawData.levelData,
       metadata: {
         ...rawData.metadata,
@@ -429,7 +407,7 @@ export function importLevel(levelData: string, name?: string): ImportResult {
     const result = CustomLevelSchema.safeParse(customLevel);
     if (!result.success) return { success: false, errors: [result.error.message] };
 
-    const validated = result.data;
+    const validated = result.data as any;
     if (!validateLevel(validated).valid) return { success: false, errors: ['Logic invalid'] };
 
     let finalName = validated.metadata.name;
@@ -440,7 +418,11 @@ export function importLevel(levelData: string, name?: string): ImportResult {
     validated.metadata.name = finalName;
 
     const success = saveLevel(finalName, validated);
-    return { success, errors: success ? [] : ['Save failed'], level: success ? validated : undefined };
+    return { 
+      success, 
+      errors: success ? [] : ['Save failed'], 
+      level: success ? (validated as any) : undefined 
+    };
   } catch (error) {
     return { success: false, errors: ['Corrupted data'] };
   }
@@ -468,7 +450,7 @@ export function importAllLevels(exportData: string): { success: boolean; importe
         errors.push(`${name}: Invalid`);
         continue;
       }
-      if (saveLevel(name, result.data as CustomLevel)) imported++;
+      if (saveLevel(name, result.data as any)) imported++;
       else errors.push(`${name}: Failed`);
     }
     return { success: imported > 0, imported, errors };
@@ -537,9 +519,20 @@ export type { CustomLevel } from './types';
 
 export function createExampleLevel(): CustomLevel {
   const id = generateLevelId();
+  const now = Date.now();
   return {
-    metadata: { id, name: 'Example', description: 'Sample', difficulty: 2, author: 'W3BP0NG', created: Date.now(), modified: Date.now(), version: STORAGE_VERSION },
+    metadata: { id, name: 'Example', description: 'Sample', difficulty: 2, author: 'W3BP0NG', created: now, modified: now, version: STORAGE_VERSION },
     levelData: { id: 0, name: 'Example', description: 'Sample', difficulty: 2, starThresholds: { time: 60, hits: 25 }, blocks: [], portals: [], goal: { type: 'destroy_targets' }, ballSpeed: 5 },
-    editorState: { mode: 'select', currentTool: 'block-normal', levelMetadata: { id, name: 'Example', description: 'Sample', difficulty: 2, created: Date.now(), modified: Date.now(), version: STORAGE_VERSION }, placedObjects: [], grid: { enabled: true, size: 20, snap: true, visible: true }, camera: { x: 0, y: 0, zoom: 1.0 }, isTestMode: false, canvas: { width: 800, height: 600 } }
+    editorState: { 
+      mode: 'select', 
+      currentTool: 'block-normal', 
+      levelMetadata: { id, name: 'Example', description: 'Sample', difficulty: 2, created: now, modified: now, version: STORAGE_VERSION }, 
+      placedObjects: [], 
+      grid: { enabled: true, size: 20, snap: true, visible: true }, 
+      camera: { x: 0, y: 0, zoom: 1.0 }, 
+      isTestMode: false, 
+      canvas: { width: 800, height: 600 },
+      history: { states: [], currentIndex: -1 }
+    }
   };
 }

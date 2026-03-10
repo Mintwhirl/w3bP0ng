@@ -95,6 +95,14 @@ class PerformanceMonitor {
     }
   }
 
+  toggle(): void {
+    if (this.isRunning) {
+      this.stop();
+    } else {
+      this.start();
+    }
+  }
+
   private tick(time: number, deltaTime: number): void {
     this.frameCount++;
 
@@ -251,6 +259,10 @@ export const perfMonitor = PerformanceMonitor.getInstance();
 
 export function startPerformanceMonitoring(config?: Partial<PerfConfig>): void {
   perfMonitor.start(config);
+}
+
+export function togglePerformanceOverlay(): void {
+  perfMonitor.toggle();
 }
 
 export function updatePerfObjectCount(count: number): void {

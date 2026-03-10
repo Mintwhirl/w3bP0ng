@@ -1,10 +1,9 @@
 /**
  * RhythmMode Component
  * Beat-synchronized Pong with combo system
- * Follows W3BP0NG liquid glass synthwave aesthetic
+ * Optimized with centralized ticker, dynamic sizing, and robust save management
  */
 
-import { W3BP0NG_THEME } from '../../w3bp0ng-theme.config';
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useGameStore } from '../hooks/useGameStore';
 import {
@@ -29,7 +28,8 @@ import {
 import { ticker, TickerGroup } from '../engine/EngineTicker';
 import { updateRhythmScore, loadSaveData } from '../utils/saveManager';
 import { checkAchievements } from '../core/achievements';
-import type { RhythmGameState, HitAccuracy } from './rhythm-mode/types';
+import { isAudioReady } from '../audio/AudioEngine';
+import type { RhythmGameState } from './rhythm-mode/types';
 import '../styles/glassmorphism.css';
 
 type GamePhase = 'menu' | 'playing' | 'paused' | 'complete';
@@ -49,6 +49,24 @@ export function RhythmMode() {
   const [displayCombo, setDisplayCombo] = useState(0);
   const [lastHitRating, setLastHitRating] = useState<{ rating: string; id: number } | null>(null);
   const [highScore, setHighScore] = useState(0);
+  const [audioUnlocked, setAudioUnlocked] = useState(isAudioReady());
+
+  const getCanvasSize = useCallback(() => ({
+    width: Math.min(1200, window.innerWidth - 40),
+    height: Math.min(800, window.innerHeight - 200),
+  }), []);
+
+  // Poll for audio unlock
+  useEffect(() => {
+    if (audioUnlocked) return;
+    const interval = setInterval(() => {
+      if (isAudioReady()) {
+        setAudioUnlocked(true);
+        clearInterval(interval);
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, [audioUnlocked]);
 
   // Load high score
   useEffect(() => {
@@ -60,14 +78,35 @@ export function RhythmMode() {
   const initializeGame = useCallback(() => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
+    const { width, height } = getCanvasSize();
+    canvas.width = width;
+    canvas.height = height;
+
     const track = createDefaultTrack(difficulty);
     beatSyncRef.current = new BeatSync(track.bpm, track.duration);
-    gameStateRef.current = createInitialRhythmState(canvas.width, canvas.height, track);
+    gameStateRef.current = createInitialRhythmState(width, height, track);
     
     setDisplayScore(0);
     setDisplayCombo(0);
     setLastHitRating(null);
-  }, [difficulty]);
+  }, [difficulty, getCanvasSize]);
+
+  // Handle Resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (canvasRef.current && gamePhase === 'playing') {
+        const { width, height } = getCanvasSize();
+        canvasRef.current.width = width;
+        canvasRef.current.height = height;
+        if (gameStateRef.current) {
+          gameStateRef.current.canvas.width = width;
+          gameStateRef.current.canvas.height = height;
+        }
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [gamePhase, getCanvasSize]);
 
   useEffect(() => {
     if (gamePhase !== 'playing') return;
@@ -75,69 +114,75 @@ export function RhythmMode() {
     initializeGame();
     const id = `rhythm-loop-${Math.random().toString(36).substr(2, 9)}`;
     
-    const unregister = ticker.register(id, (currentTime, deltaTime) => {
-      if (!gameStateRef.current || !beatSyncRef.current || !canvasRef.current) return;
-      const state = gameStateRef.current;
-      const beatSync = beatSyncRef.current;
-      const canvas = canvasRef.current;
+    // Slight delay to ensure initializeGame has populated the refs
+    const timer = setTimeout(() => {
+      ticker.register(id, (_currentTime, deltaTime) => {
+        if (!gameStateRef.current || !beatSyncRef.current || !canvasRef.current) return;
+        const state = gameStateRef.current;
+        const beatSync = beatSyncRef.current;
+        const canvas = canvasRef.current;
 
-      // Update elapsed time
-      state.elapsedTime += deltaTime;
+        // Update elapsed time
+        state.elapsedTime += deltaTime;
 
-      const beatProgress = beatSync.getBeatProgress(state.elapsedTime);
-      const currentBeat = beatSync.getCurrentBeat(state.elapsedTime);
+        const beatProgress = beatSync.getBeatProgress(state.elapsedTime);
+        const currentBeat = beatSync.getCurrentBeat(state.elapsedTime);
 
-      // Controls
-      const upPressed = keysPressed.current.has('w') || keysPressed.current.has('arrowup');
-      const downPressed = keysPressed.current.has('s') || keysPressed.current.has('arrowdown');
-      state.paddle = updatePaddle(state.paddle, upPressed, downPressed, canvas.height, deltaTime / 16.67);
+        // Controls
+        const upPressed = keysPressed.current.has('w') || keysPressed.current.has('arrowup');
+        const downPressed = keysPressed.current.has('s') || keysPressed.current.has('arrowdown');
+        state.paddle = updatePaddle(state.paddle, upPressed, downPressed, canvas.height, deltaTime / 16.67);
 
-      // Physics
-      state.ball = updateBall(state.ball, deltaTime / 16.67);
-      state.ball = checkWallCollisions(state.ball, canvas.width, canvas.height);
+        // Physics
+        state.ball = updateBall(state.ball, deltaTime / 16.67);
+        state.ball = checkWallCollisions(state.ball, canvas.width, canvas.height);
 
-      // Hit processing
-      if (checkPaddleCollision(state.ball, state.paddle)) {
-        const accuracy = beatSync.checkHitTiming(state.elapsedTime, currentBeat);
-        gameStateRef.current = processHit(state, accuracy);
-        gameStateRef.current.ball = applyPaddleBounce(gameStateRef.current.ball, gameStateRef.current.paddle);
-        
-        setDisplayScore(state.score);
-        setDisplayCombo(state.combo);
-        setLastHitRating({ rating: accuracy.toUpperCase(), id: Date.now() });
-      }
+        // Hit processing
+        if (checkPaddleCollision(state.ball, state.paddle)) {
+          const accuracy = beatSync.checkHitTiming(state.elapsedTime, currentBeat);
+          const newState = processHit(state, accuracy);
+          newState.ball = applyPaddleBounce(newState.ball, newState.paddle);
+          gameStateRef.current = newState;
+          
+          setDisplayScore(newState.score);
+          setDisplayCombo(newState.combo);
+          setLastHitRating({ rating: accuracy.toUpperCase(), id: Date.now() });
+        }
 
-      // Miss processing
-      if (state.ball.x + state.ball.radius < 0) {
-        state.ball = resetBall(canvas.width, canvas.height);
-        state.combo = 0;
-        state.missedBeats = (state.missedBeats || 0) + 1;
-        setDisplayCombo(0);
-        setLastHitRating({ rating: 'MISS', id: Date.now() });
-      }
+        // Miss processing
+        if (state.ball.x + state.ball.radius < 0) {
+          state.ball = resetBall(canvas.width, canvas.height);
+          state.combo = 0;
+          state.missedBeats = (state.missedBeats || 0) + 1;
+          setDisplayCombo(0);
+          setLastHitRating({ rating: 'MISS', id: Date.now() });
+        }
 
-      // Track completion
-      if (state.elapsedTime >= state.track.duration * 1000) {
-        const currentTrack = state.track;
-        updateRhythmScore(currentTrack.id, state.score, state.combo);
-        checkAchievements();
-        setGamePhase('complete');
-        return;
-      }
+        // Track completion
+        if (state.elapsedTime >= state.track.duration * 1000) {
+          updateRhythmScore(state.track.id, state.score, state.combo);
+          checkAchievements();
+          setGamePhase('complete');
+          return;
+        }
 
-      // Render
-      const ctx = canvas.getContext('2d');
-      if (ctx) renderRhythmGame(ctx, state, beatProgress);
-    }, TickerGroup.GAME);
+        // Render
+        const ctx = canvas.getContext('2d');
+        if (ctx) renderRhythmGame(ctx, state, beatProgress);
+      }, TickerGroup.GAME);
+    }, 50);
 
-    return () => unregister();
+    return () => {
+      clearTimeout(timer);
+      ticker.unregister(id);
+    };
   }, [gamePhase, initializeGame]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       keysPressed.current.add(e.key.toLowerCase());
       if (e.key === 'Escape' && gamePhase === 'playing') setGamePhase('paused');
-      if (e.key === ' ' && gamePhase === 'menu') setGamePhase('playing');
+      if (e.key === ' ' && gamePhase === 'menu' && audioUnlocked) setGamePhase('playing');
     };
     const handleKeyUp = (e: KeyboardEvent) => keysPressed.current.delete(e.key.toLowerCase());
     window.addEventListener('keydown', handleKeyDown);
@@ -146,9 +191,13 @@ export function RhythmMode() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [gamePhase]);
+  }, [gamePhase, audioUnlocked]);
 
-  const handleExit = () => { ticker.resumeGroup(TickerGroup.GAME); returnToMenu(); };
+  const handleExit = () => { 
+    ticker.resumeGroup(TickerGroup.GAME); 
+    returnToMenu(); 
+  };
+
   const calculateAccuracy = () => {
     if (!gameStateRef.current) return 0;
     const { perfectHits, goodHits, missedBeats } = gameStateRef.current;
@@ -158,8 +207,16 @@ export function RhythmMode() {
 
   return (
     <div className="rhythm-mode cosmic-bg full-bleed">
-      <canvas ref={canvasRef} width={1200} height={800} className="game-canvas"
-        style={{ display: gamePhase === 'playing' || gamePhase === 'paused' ? 'block' : 'none' }} />
+      <canvas 
+        ref={canvasRef} 
+        className="game-canvas"
+        style={{ 
+          display: gamePhase === 'playing' || gamePhase === 'paused' ? 'block' : 'none',
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain'
+        }} 
+      />
 
       {/* HUD */}
       {(gamePhase === 'playing' || gamePhase === 'paused') && gameStateRef.current && (
@@ -186,6 +243,8 @@ export function RhythmMode() {
       {gamePhase === 'menu' && (
         <GlassPanel variant="elevated" neonAccent="cyan" className="rhythm-menu animate-slideUp">
           <h1 className="text-glow-primary">RHYTHM BEATS</h1>
+          <p className="text-glow-subtle">Sync your hits with the pulse</p>
+          
           <div className="difficulty-sel">
             {(['easy', 'normal', 'hard'] as Difficulty[]).map(d => (
               <GlassButton key={d} variant={difficulty === d ? 'primary' : 'secondary'} onClick={() => setDifficulty(d)}>
@@ -193,13 +252,21 @@ export function RhythmMode() {
               </GlassButton>
             ))}
           </div>
+          
           <p className="track-info">
             {difficulty === 'easy' && 'Chill Vibes • 90 BPM'}
             {difficulty === 'normal' && 'Synth Pulse • 120 BPM'}
             {difficulty === 'hard' && 'Cyber Overdrive • 160 BPM'}
           </p>
+
           <div className="menu-actions">
-            <GlassButton variant="primary" onClick={() => setGamePhase('playing')}>START PERFORMANCE</GlassButton>
+            {!audioUnlocked ? (
+              <p className="audio-warning">Please click anywhere to enable audio first</p>
+            ) : (
+              <GlassButton variant="primary" onClick={() => setGamePhase('playing')} size="large">
+                START PERFORMANCE
+              </GlassButton>
+            )}
             <GlassButton onClick={handleExit}>EXIT</GlassButton>
           </div>
         </GlassPanel>
@@ -259,9 +326,22 @@ export function RhythmMode() {
           20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
           100% { transform: translate(-50%, -150%) scale(1); opacity: 0; }
         }
-        .difficulty-sel { display: flex; gap: 15px; margin: 25px 0; }
-        .track-info { color: #00ffff; margin-bottom: 30px; font-family: 'JetBrains Mono', monospace; }
-        .rhythm-menu { padding: 40px !important; text-align: center; }
+        .difficulty-sel { display: flex; gap: 15px; margin: 25px 0; justify-content: center; }
+        .track-info { color: #00ffff; margin-bottom: 20px; font-family: 'JetBrains Mono', monospace; text-align: center; }
+        .audio-warning { color: #f87171; margin-bottom: 20px; font-size: 0.9rem; font-weight: bold; text-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
+        .rhythm-menu, .completion-panel { 
+          padding: 40px !important; 
+          text-align: center;
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          min-width: 450px;
+        }
+        .menu-actions { display: flex; flex-direction: column; gap: 15px; }
+        .final-stats { margin: 20px 0; }
+        .stat-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .stat-row .val { color: #00ffff; font-family: 'JetBrains Mono', monospace; }
       `}</style>
     </div>
   );

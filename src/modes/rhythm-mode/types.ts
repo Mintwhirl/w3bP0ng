@@ -24,6 +24,8 @@ export interface BeatTiming {
  * Musical track definition with beat timing data
  */
 export interface Track {
+  /** Unique track ID */
+  id: string;
   /** Display name of the track */
   name: string;
   /** Beats per minute */

@@ -5,7 +5,6 @@
  * Optimized with centralized ticker and robust save management
  */
 
-import { W3BP0NG_THEME } from '../../w3bp0ng-theme.config';
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { useGameStore } from '../hooks/useGameStore';
 import {
@@ -18,7 +17,7 @@ import {
 } from '../ui/GlassHUD';
 import { renderPuzzleGame } from './physics-puzzle/PuzzleRenderer';
 import { getLevel, LEVELS } from './physics-puzzle/levels';
-import { listLevels, loadLevel } from './level-editor/LevelData';
+import { loadLevel } from './level-editor/LevelData';
 import {
   updatePaddlePosition,
   updateBallPosition,
@@ -66,7 +65,6 @@ export function PhysicsPuzzleMode() {
   // ═══════════════════════════════════════════════════════════
   const [currentLevelId, setCurrentLevelId] = useState(1);
   const [levelSource, setLevelSource] = useState<LevelSource>('builtin');
-  const [customLevelName, setCustomLevelName] = useState<string | null>(null);
   const [gamePhase, setGamePhase] = useState<GamePhase>('menu');
   const [displayScore, setDisplayScore] = useState(0);
   const [displayTime, setDisplayTime] = useState(0);
@@ -75,14 +73,13 @@ export function PhysicsPuzzleMode() {
   const [totalStars, setTotalStars] = useState(0);
   const [unlockedLevels, setUnlockedLevels] = useState(1);
   const [levelStars, setLevelStars] = useState<Record<string, number>>({});
-  const [availableCustomLevels, setAvailableCustomLevels] = useState<string[]>([]);
 
   // Load current level (builtin or custom)
   const currentLevel = useMemo(() => 
-    levelSource === 'custom' && customLevelName
-      ? loadLevel(customLevelName)?.levelData
+    levelSource === 'custom'
+      ? loadLevel('Imported')?.levelData // Simplified for now
       : getLevel(currentLevelId),
-    [levelSource, customLevelName, currentLevelId]
+    [levelSource, currentLevelId]
   );
 
   // ═══════════════════════════════════════════════════════════
@@ -93,10 +90,6 @@ export function PhysicsPuzzleMode() {
     setTotalStars(saveData.puzzleProgress.totalStars);
     setUnlockedLevels(saveData.puzzleProgress.unlockedLevels);
     setLevelStars(saveData.puzzleProgress.levelStars);
-    
-    // Load custom levels list
-    const customLevels = listLevels().map(level => level.name);
-    setAvailableCustomLevels(customLevels);
   }, []);
 
   useEffect(() => {
@@ -149,112 +142,118 @@ export function PhysicsPuzzleMode() {
   useEffect(() => {
     if (gamePhase !== 'playing') return;
 
+    initializeLevel();
     const id = `puzzle-loop-${Math.random().toString(36).substr(2, 9)}`;
     
-    const unregister = ticker.register(id, (currentTime, deltaTime) => {
-      if (!gameStateRef.current || !canvasRef.current) return;
-      const state = gameStateRef.current;
+    // Small delay to ensure initializeLevel has finished and ref is populated
+    const timer = setTimeout(() => {
+      ticker.register(id, (currentTime, deltaTime) => {
+        if (!gameStateRef.current || !canvasRef.current) return;
+        const state = gameStateRef.current;
 
-      // Update elapsed time
-      if (state.gameStarted) {
-        state.elapsedTime += deltaTime / 1000;
-        setDisplayTime(state.elapsedTime);
-      }
+        // Update elapsed time
+        if (state.gameStarted) {
+          state.elapsedTime += deltaTime / 1000;
+          setDisplayTime(state.elapsedTime);
+        }
 
-      // Update paddle
-      const leftPressed = keysPressed.current.has('arrowleft') || keysPressed.current.has('a');
-      const rightPressed = keysPressed.current.has('arrowright') || keysPressed.current.has('d');
-      state.paddle = updatePaddlePosition(
-        state.paddle,
-        leftPressed,
-        rightPressed,
-        state.canvas.width,
-        deltaTime / 16.67 // Scale to standard frame
-      );
+        // Update paddle
+        const leftPressed = keysPressed.current.has('arrowleft') || keysPressed.current.has('a');
+        const rightPressed = keysPressed.current.has('arrowright') || keysPressed.current.has('d');
+        state.paddle = updatePaddlePosition(
+          state.paddle,
+          leftPressed,
+          rightPressed,
+          state.canvas.width,
+          deltaTime / 16.67 // Scale to standard frame
+        );
 
-      // Update balls
-      state.balls.forEach((ball, index) => {
-        if (!state.gameStarted) {
-          ball.x = state.paddle.x;
-          ball.y = state.paddle.y - state.paddle.height / 2 - ball.radius - 2;
+        // Update balls
+        state.balls.forEach((ball, index) => {
+          if (!state.gameStarted) {
+            ball.x = state.paddle.x;
+            ball.y = state.paddle.y - state.paddle.height / 2 - ball.radius - 2;
+            return;
+          }
+
+          state.balls[index] = updateBallPosition(ball, state.gravityZones, deltaTime / 16.67);
+          state.balls[index] = checkWallCollisions(ball, state.canvas.width, state.canvas.height);
+
+          if (isBallOutOfBounds(ball, state.canvas.height)) {
+            ball.active = false;
+          }
+
+          const paddleHit = checkPaddleCollision(ball, state.paddle);
+          if (paddleHit.collided) {
+            state.balls[index] = applyPaddleBounce(ball, state.paddle);
+            state.hits++;
+            setDisplayHits(state.hits);
+          }
+
+          for (let i = 0; i < state.blocks.length; i++) {
+            const block = state.blocks[i];
+            if (!block || !block.active) continue;
+
+            const blockHit = checkBlockCollision(ball, block);
+            if (blockHit.collided && blockHit.normal) {
+              if (block.type === 'swapper') {
+                state.balls[index] = handleSwapperCollision(ball, block);
+                state.balls[index] = applyBlockBounce(state.balls[index], blockHit.normal);
+                state.blocks[i] = damageBlock(block);
+              } else {
+                state.balls[index] = applyBlockBounce(ball, blockHit.normal);
+                const damagedBlock = damageBlock(block);
+                state.blocks[i] = damagedBlock;
+                if (!damagedBlock.active) {
+                  state.score += (block.type === 'target' ? 500 : 100);
+                  setDisplayScore(state.score);
+                }
+              }
+              break;
+            }
+          }
+
+          const portalResult = checkPortalCollision(ball, state.portals, currentTime);
+          if (portalResult.teleported) {
+            state.balls[index] = applyPortalTeleport(ball, portalResult, currentTime);
+          }
+
+          const bouncePad = checkBouncePadCollision(ball, state.bouncePads);
+          if (bouncePad) {
+            state.balls[index] = applyBouncePadEffect(ball, bouncePad);
+          }
+        });
+
+        state.balls = state.balls.filter(b => b.active);
+
+        // Check level complete
+        if (checkLevelComplete(state)) {
+          const stars = calculateStars(state);
+          setEarnedStars(stars);
+          updatePuzzleProgress(currentLevelId, stars);
+          checkAchievements();
+          refreshProgress();
+          setGamePhase('complete');
           return;
         }
 
-        state.balls[index] = updateBallPosition(ball, state.gravityZones, deltaTime / 16.67);
-        state.balls[index] = checkWallCollisions(ball, state.canvas.width, state.canvas.height);
-
-        if (isBallOutOfBounds(ball, state.canvas.height)) {
-          ball.active = false;
+        // Check failure
+        if (state.balls.length === 0 && state.gameStarted) {
+          state.levelFailed = true;
+          setGamePhase('menu');
         }
 
-        const paddleHit = checkPaddleCollision(ball, state.paddle);
-        if (paddleHit.collided) {
-          state.balls[index] = applyPaddleBounce(ball, state.paddle);
-          state.hits++;
-          setDisplayHits(state.hits);
-        }
+        // Render
+        const ctx = canvasRef.current.getContext('2d');
+        if (ctx) renderPuzzleGame(ctx, state, currentTime);
+      }, TickerGroup.GAME);
+    }, 50);
 
-        for (let i = 0; i < state.blocks.length; i++) {
-          const block = state.blocks[i];
-          if (!block || !block.active) continue;
-
-          const blockHit = checkBlockCollision(ball, block);
-          if (blockHit.collided && blockHit.normal) {
-            if (block.type === 'swapper') {
-              state.balls[index] = handleSwapperCollision(ball, block);
-              state.balls[index] = applyBlockBounce(state.balls[index], blockHit.normal);
-              state.blocks[i] = damageBlock(block);
-            } else {
-              state.balls[index] = applyBlockBounce(ball, blockHit.normal);
-              const damagedBlock = damageBlock(block);
-              state.blocks[i] = damagedBlock;
-              if (!damagedBlock.active) {
-                state.score += (block.type === 'target' ? 500 : 100);
-                setDisplayScore(state.score);
-              }
-            }
-            break;
-          }
-        }
-
-        const portalResult = checkPortalCollision(ball, state.portals, currentTime);
-        if (portalResult.teleported) {
-          state.balls[index] = applyPortalTeleport(ball, portalResult, currentTime);
-        }
-
-        const bouncePad = checkBouncePadCollision(ball, state.bouncePads);
-        if (bouncePad) {
-          state.balls[index] = applyBouncePadEffect(ball, bouncePad);
-        }
-      });
-
-      state.balls = state.balls.filter(b => b.active);
-
-      // Check level complete
-      if (checkLevelComplete(state)) {
-        const stars = calculateStars(state);
-        setEarnedStars(stars);
-        setGamePhase('complete');
-        
-        // Save progress securely
-        updatePuzzleProgress(currentLevelId, stars);
-        refreshProgress();
-        return;
-      }
-
-      // Check failure
-      if (state.balls.length === 0 && state.gameStarted) {
-        state.levelFailed = true;
-        setGamePhase('menu');
-      }
-
-      // Render
-      const ctx = canvasRef.current.getContext('2d');
-      if (ctx) renderPuzzleGame(ctx, state, currentTime);
-    }, TickerGroup.GAME);
-
-    return () => unregister();
-  }, [gamePhase, currentLevelId, refreshProgress]);
+    return () => {
+      clearTimeout(timer);
+      ticker.unregister(id);
+    };
+  }, [gamePhase, currentLevelId, refreshProgress, initializeLevel]);
 
   // ═══════════════════════════════════════════════════════════
   // CONTROLS
@@ -279,9 +278,9 @@ export function PhysicsPuzzleMode() {
   // ═══════════════════════════════════════════════════════════
   // EVENT HANDLERS
   // ═══════════════════════════════════════════════════════════
-  const handleStartLevel = () => { initializeLevel(); setGamePhase('playing'); };
+  const handleStartLevel = () => { setGamePhase('playing'); };
   const handleResume = () => { setGamePhase('playing'); };
-  const handleRetry = () => { initializeLevel(); setGamePhase('menu'); };
+  const handleRetry = () => { setGamePhase('menu'); };
   
   const handleExit = () => {
     ticker.resumeGroup(TickerGroup.GAME);

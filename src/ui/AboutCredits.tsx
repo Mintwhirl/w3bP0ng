@@ -151,6 +151,7 @@ const AboutCredits = memo(function AboutCredits({ isOpen, onClose }: { isOpen: b
         window.removeEventListener('keydown', handleEscape);
       };
     }
+    return undefined;
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;

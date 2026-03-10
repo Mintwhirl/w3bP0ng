@@ -89,19 +89,17 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
 
   // Handle reset
   const handleReset = () => {
-    if (window.confirm('⚠️ This will delete ALL your progress, achievements, and settings. This action cannot be undone.\\n\\nAre you absolutely sure you want to reset all data?')) {
-      if (window.confirm('🔥 Final confirmation: This will permanently delete your save data. Type "RESET" to confirm:')) {
-        const confirmation = prompt('Please type "RESET" to confirm data deletion:');
-        if (confirmation === 'RESET') {
-          const success = resetSaveData();
-          if (success) {
-            setSaveInfo(getSaveDataInfo());
-            setCompletionStats(getCompletionPercentage());
-            setAchievementStats(getAchievementStats());
-            alert('✅ Save data has been reset successfully');
-          } else {
-            alert('❌ Failed to reset save data');
-          }
+    if (window.confirm('⚠️ This will delete ALL your progress, achievements, and settings. This action cannot be undone.')) {
+      const confirmation = prompt('Please type "RESET" to confirm data deletion:');
+      if (confirmation === 'RESET') {
+        const success = resetSaveData();
+        if (success) {
+          setSaveInfo(getSaveDataInfo());
+          setCompletionStats(getCompletionPercentage());
+          setAchievementStats(getAchievementStats());
+          alert('✅ Save data has been reset successfully');
+        } else {
+          alert('❌ Failed to reset save data');
         }
       }
     }
@@ -233,8 +231,8 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
                   stats={[
                     { label: 'Unlocked', value: achievementStats.unlocked },
                     { label: 'Total', value: achievementStats.total },
-                    { label: 'Completion', value: `${Math.round((achievementStats.unlocked / achievementStats.total) * 100)}%` },
-                    { label: 'Points', value: achievementStats.earnedPoints },
+                    { label: 'Completion', value: `${achievementStats.percentage}%` },
+                    { label: 'Points', value: achievementStats.totalPoints },
                   ]}
                 />
               </div>
@@ -244,13 +242,13 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
                 <h3 className="section-title">🎉 Recent Unlocks</h3>
                 <div className="recent-list">
                   {recentAchievements.length > 0 ? (
-                    recentAchievements.map(({ achievement, unlockedAt }: { achievement: Achievement; unlockedAt: number }) => (
+                    recentAchievements.map((achievement: any) => (
                       <div key={achievement.id} className="recent-achievement">
                         <span className="achievement-icon">{achievement.icon}</span>
                         <div className="achievement-info">
                           <span className="achievement-name">{achievement.name}</span>
                           <span className="achievement-time">
-                            {new Date(unlockedAt!).toLocaleDateString()}
+                            {new Date(achievement.unlockedAt).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
@@ -264,11 +262,8 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
               {/* Achievement Categories */}
               <div className="achievement-categories">
                 {(['puzzle', 'rhythm', 'battle', 'editor', 'general'] as const).map(category => {
-                  const categoryStats = achievementStats.byCategory[category];
-                  if (!categoryStats) return null;
-
                   const categoryAchievements = getAchievementsByCategory(category);
-                  if (!categoryAchievements) return null;
+                  if (categoryAchievements.length === 0) return null;
 
                   return (
                     <div key={category} className="achievement-category">
@@ -279,9 +274,6 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
                         {category === 'editor' && '🛠️ Editor'}
                         {category === 'general' && '🎮 General'}
                       </h4>
-                      <div className="category-stats">
-                        {categoryStats.unlocked}/{categoryStats.total}
-                      </div>
                       <div className="category-achievements">
                         {categoryAchievements.map((achievement: Achievement) => (
                           <div
@@ -335,7 +327,6 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
                 <p>📥 Import save data from backup file:</p>
                 <ul>
                   <li>Restore your progress on another device</li>
-                  <li>Merge with existing data</li>
                   <li>Recover from accidental reset</li>
                 </ul>
               </div>
@@ -360,7 +351,7 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
               )}
 
               <div className="import-warning">
-                <p>⚠️ Warning: Importing will overwrite existing save data for the same content.</p>
+                <p>⚠️ Warning: Importing will overwrite existing save data.</p>
               </div>
             </div>
           )}

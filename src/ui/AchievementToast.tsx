@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { GlassPanel } from './GlassHUD';
 import { achievementManager, type Achievement } from '../core/achievements';
 

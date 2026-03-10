@@ -104,7 +104,7 @@ export interface EditorState {
 
   // History for undo/redo
   history: {
-    states: EditorState[];
+    states: any[]; // Changed from EditorState[] to any[] to avoid circular dependency issues in some contexts
     currentIndex: number;
   };
 }

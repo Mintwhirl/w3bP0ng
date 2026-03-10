@@ -51,6 +51,7 @@ export function useFocusTrap(isActive: boolean) {
         clearTimeout(timer);
       };
     }
+    return undefined;
   }, [isActive, handleKeyDown]);
 
   return containerRef;

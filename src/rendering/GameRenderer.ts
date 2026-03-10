@@ -22,7 +22,6 @@ export class GameRenderer {
   private cachedGradient: CanvasGradient | null = null;
   private lastWidth: number = 0;
   private lastHeight: number = 0;
-  private lastThemeId: string = '';
 
   constructor(canvas: HTMLCanvasElement, theme: Theme = DEFAULT_THEME) {
     this.canvas = canvas;

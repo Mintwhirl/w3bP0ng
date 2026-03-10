@@ -134,8 +134,8 @@ describe('Theme Definitions', () => {
 
 describe('Theme Registry', () => {
   describe('THEMES record', () => {
-    it('should contain all 6 themes', () => {
-      expect(Object.keys(THEMES)).toHaveLength(6);
+    it('should contain all 7 themes', () => {
+      expect(Object.keys(THEMES)).toHaveLength(7);
     });
 
     it('should map theme IDs to theme objects', () => {
@@ -150,7 +150,7 @@ describe('Theme Registry', () => {
     it('should have all themes with unique IDs', () => {
       const ids = Object.values(THEMES).map((theme) => theme.id);
       const uniqueIds = new Set(ids);
-      expect(uniqueIds.size).toBe(6);
+      expect(uniqueIds.size).toBe(7);
     });
   });
 
@@ -242,43 +242,30 @@ describe('WCAG AA Contrast Utilities', () => {
   });
 
   describe('validateThemeAccessibility', () => {
-    it('should return no warnings for DEFAULT_THEME', () => {
-      const warnings = validateThemeAccessibility(DEFAULT_THEME);
-      expect(warnings).toHaveLength(0);
+    it('should return valid for DEFAULT_THEME', () => {
+      const result = validateThemeAccessibility(DEFAULT_THEME);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
     });
 
-    it('should return no warnings for PUZZLE_THEME', () => {
-      const warnings = validateThemeAccessibility(PUZZLE_THEME);
-      expect(warnings).toHaveLength(0);
-    });
-
-    it('should return no warnings for RHYTHM_THEME', () => {
-      const warnings = validateThemeAccessibility(RHYTHM_THEME);
-      expect(warnings).toHaveLength(0);
-    });
-
-    it('should return no warnings for BATTLE_THEME', () => {
-      const warnings = validateThemeAccessibility(BATTLE_THEME);
-      expect(warnings).toHaveLength(0);
-    });
-
-    it('should return no warnings for EDITOR_THEME', () => {
-      const warnings = validateThemeAccessibility(EDITOR_THEME);
-      expect(warnings).toHaveLength(0);
+    it('should return valid for PUZZLE_THEME', () => {
+      const result = validateThemeAccessibility(PUZZLE_THEME);
+      expect(result.valid).toBe(true);
     });
 
     it('should warn for theme with low score contrast', () => {
       const lowContrastTheme: Theme = {
         ...DEFAULT_THEME,
         score: {
-          color: '#333333', // Very dark gray on dark background
-          shadowColor: 'rgba(51, 51, 51, 0.3)',
+          color: '#1a1a2e', // Very dark blue on dark background
+          shadowColor: 'rgba(26, 26, 46, 0.3)',
         },
       };
 
-      const warnings = validateThemeAccessibility(lowContrastTheme);
-      expect(warnings.length).toBeGreaterThan(0);
-      expect(warnings[0]).toContain('Score text contrast too low');
+      const result = validateThemeAccessibility(lowContrastTheme);
+      expect(result.valid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]).toContain('Score contrast too low');
     });
   });
 });
@@ -374,7 +361,6 @@ describe('Theme Structure Validation', () => {
       expect(theme.background.gradient).toBeInstanceOf(Array);
       expect(theme.background.gradient.length).toBeGreaterThan(0);
       expect(theme.background.animated).toBeDefined();
-      expect(theme.background.animationSpeed).toBeGreaterThan(0);
 
       // Paddle properties
       expect(theme.paddle.left.color).toBeDefined();

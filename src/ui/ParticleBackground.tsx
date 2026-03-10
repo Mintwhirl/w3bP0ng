@@ -56,6 +56,8 @@ export const ParticleBackground = memo(function ParticleBackground() {
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
+        if (!p) continue;
+
         // Update position
         p.x += p.vx;
         p.y += p.vy;

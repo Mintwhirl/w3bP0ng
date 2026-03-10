@@ -148,16 +148,19 @@ export class BeatSync {
 export function createDefaultTrack(difficulty: 'easy' | 'normal' | 'hard'): Track {
   const configs = {
     easy: {
+      id: 'rhythm-easy',
       name: 'Synthwave Sunrise',
       bpm: 90,
       duration: 60
     },
     normal: {
+      id: 'rhythm-normal',
       name: 'Neon Pulse',
       bpm: 120,
       duration: 90
     },
     hard: {
+      id: 'rhythm-hard',
       name: 'Cyber Rush',
       bpm: 160,
       duration: 120
@@ -168,6 +171,7 @@ export function createDefaultTrack(difficulty: 'easy' | 'normal' | 'hard'): Trac
   const beatSync = new BeatSync(config.bpm, config.duration);
 
   return {
+    id: config.id,
     name: config.name,
     bpm: config.bpm,
     duration: config.duration,

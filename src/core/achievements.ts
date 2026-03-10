@@ -3,7 +3,7 @@
  * Defines 20 achievements spanning all game modes with unlock conditions
  */
 
-import { AchievementProgress, saveSaveData, loadSaveData } from '../utils/saveManager';
+import { saveSaveData, loadSaveData } from '../utils/saveManager';
 
 // ═══════════════════════════════════════════════════════════
 // ACHIEVEMENT DEFINITIONS
@@ -165,6 +165,11 @@ export class AchievementManager {
     this.unlockCallbacks.push(callback);
   }
 
+  isAchievementUnlocked(achievementId: string): boolean {
+    const data = loadSaveData();
+    return !!data.achievements[achievementId]?.unlocked;
+  }
+
   unlockAchievement(achievementId: string): { success: boolean; isNew: boolean } {
     try {
       const data = loadSaveData();
@@ -201,15 +206,15 @@ export class AchievementManager {
 
   private evaluateCondition(cond: AchievementCondition, data: any): boolean {
     switch (cond.type) {
-      case 'total_stars': return data.puzzleProgress.totalStars >= cond.target;
-      case 'perfect_rhythm': return data.rhythmProgress.perfectSongs.length >= cond.target;
-      case 'battle_wins': return data.battleRoyaleProgress.totalWins >= cond.target;
-      case 'custom_levels': return data.customLevels.created >= cond.target;
-      case 'total_games': return data.stats.totalGamesPlayed >= cond.target;
-      case 'combo_master': return data.rhythmProgress.bestCombo >= cond.target;
-      case 'veteran': return data.playTime >= cond.target;
+      case 'total_stars': return (data.puzzleProgress?.totalStars || 0) >= cond.target;
+      case 'perfect_rhythm': return (data.rhythmProgress?.perfectSongs?.length || 0) >= cond.target;
+      case 'battle_wins': return (data.battleRoyaleProgress?.totalWins || 0) >= cond.target;
+      case 'custom_levels': return (data.customLevels?.created || 0) >= cond.target;
+      case 'total_games': return (data.stats?.totalGamesPlayed || 0) >= cond.target;
+      case 'combo_master': return (data.rhythmProgress?.bestCombo || 0) >= cond.target;
+      case 'veteran': return (data.playTime || 0) >= cond.target;
       case 'collector': 
-        return Object.values(data.achievements).filter((a: any) => a.unlocked).length >= cond.target;
+        return Object.values(data.achievements || {}).filter((a: any) => a.unlocked).length >= cond.target;
       default: return false;
     }
   }
@@ -219,4 +224,38 @@ export const achievementManager = AchievementManager.getInstance();
 
 export function checkAchievements(): void {
   achievementManager.checkAllAchievements();
+}
+
+export function isAchievementUnlocked(id: string): boolean {
+  return achievementManager.isAchievementUnlocked(id);
+}
+
+export function getAchievementStats() {
+  const data = loadSaveData();
+  const unlocked = Object.values(data.achievements).filter(a => a.unlocked);
+  return {
+    total: ACHIEVEMENTS.length,
+    unlocked: unlocked.length,
+    percentage: Math.round((unlocked.length / ACHIEVEMENTS.length) * 100),
+    totalPoints: unlocked.reduce((sum, a) => {
+      const ach = ACHIEVEMENTS.find(ach => ach.id === a.id);
+      return sum + (ach?.points || 0);
+    }, 0)
+  };
+}
+
+export function getAchievementsByCategory(category: Achievement['category']) {
+  return ACHIEVEMENTS.filter(a => a.category === category);
+}
+
+export function getRecentlyUnlocked(limit: number = 5) {
+  const data = loadSaveData();
+  return Object.values(data.achievements)
+    .filter(a => a.unlocked && a.unlockedAt)
+    .sort((a, b) => (b.unlockedAt || 0) - (a.unlockedAt || 0))
+    .slice(0, limit)
+    .map(a => ({
+      ...ACHIEVEMENTS.find(ach => ach.id === a.id)!,
+      unlockedAt: a.unlockedAt
+    }));
 }

@@ -115,7 +115,6 @@ const PongGame = () => {
   const [leaderboardMode, setLeaderboardMode] = useState<'gameEnd' | 'view'>('gameEnd');
   const [playerName, setPlayerName] = useState('');
   const [leaderboardScores, setLeaderboardScores] = useState<any[]>([]);
-  const animationFrameRef = useRef<number | null>(null);
 
   // Get current theme (auto-switches based on game mode)
   const theme = useTheme();
