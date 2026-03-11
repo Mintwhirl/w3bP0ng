@@ -1,9 +1,11 @@
 /**
  * Global game state management using Zustand
  * Manages UI state, settings, and game mode selection
+ * Persisted to localStorage for continuity
  */
 
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { ticker } from '../engine/EngineTicker';
 
 /**
@@ -96,33 +98,47 @@ const getInitialMotionPref = () => {
 };
 
 /**
- * Create Zustand store
+ * Create Zustand store with persistence
  */
-export const useGameStore = create<GameStore>((set) => ({
-  // Initial state
-  currentMode: 'title',
-  soundEnabled: true,
-  currentTheme: 'synthwave-sunset',
-  reducedMotion: getInitialMotionPref(),
-  settingsPanelOpen: false,
+export const useGameStore = create<GameStore>()(
+  persist(
+    (set) => ({
+      // Initial state
+      currentMode: 'title',
+      soundEnabled: true,
+      currentTheme: 'synthwave-sunset',
+      reducedMotion: getInitialMotionPref(),
+      settingsPanelOpen: false,
 
-  // Actions
-  setMode: (mode: GameMode) => set({ currentMode: mode }),
+      // Actions
+      setMode: (mode: GameMode) => set({ currentMode: mode }),
 
-  toggleSound: () => set((state) => ({ soundEnabled: !state.soundEnabled })),
+      toggleSound: () => set((state) => ({ soundEnabled: !state.soundEnabled })),
 
-  setTheme: (themeId: string) => set({ currentTheme: themeId }),
+      setTheme: (themeId: string) => set({ currentTheme: themeId }),
 
-  updateSettings: (settings) => set((state) => {
-    if (settings.reducedMotion !== undefined) {
-      ticker.setReducedMotion(settings.reducedMotion);
+      updateSettings: (settings) => set((state) => {
+        if (settings.reducedMotion !== undefined) {
+          ticker.setReducedMotion(settings.reducedMotion);
+        }
+        return { ...state, ...settings };
+      }),
+
+      toggleSettingsPanel: () => set((state) => ({
+        settingsPanelOpen: !state.settingsPanelOpen
+      })),
+
+      returnToMenu: () => set({ currentMode: 'menu', settingsPanelOpen: false }),
+    }),
+    {
+      name: 'webpong-storage',
+      storage: createJSONStorage(() => localStorage),
+      // Only persist settings, not UI state or current mode
+      partialize: (state) => ({
+        soundEnabled: state.soundEnabled,
+        currentTheme: state.currentTheme,
+        reducedMotion: state.reducedMotion,
+      }),
     }
-    return { ...state, ...settings };
-  }),
-
-  toggleSettingsPanel: () => set((state) => ({
-    settingsPanelOpen: !state.settingsPanelOpen
-  })),
-
-  returnToMenu: () => set({ currentMode: 'menu', settingsPanelOpen: false }),
-}));
+  )
+);

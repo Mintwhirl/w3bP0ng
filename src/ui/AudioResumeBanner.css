@@ -1,0 +1,56 @@
+.audio-resume-banner {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 2000;
+  padding: 15px 20px !important;
+  min-width: 320px;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 0, 255, 0.4);
+}
+
+.audio-resume-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.audio-icon {
+  font-size: 1.8rem;
+  filter: drop-shadow(0 0 10px #ff00ff);
+}
+
+.audio-text {
+  flex: 1;
+  text-align: left;
+}
+
+.audio-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.95rem;
+  color: #ff00ff;
+  margin: 0;
+  letter-spacing: 2px;
+  font-weight: 700;
+}
+
+.audio-desc {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 4px 0 0 0;
+  line-height: 1.2;
+}
+
+.audio-resume-btn {
+  padding: 8px 16px !important;
+  font-size: 0.8rem !important;
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0.4) !important;
+}
+
+@media (max-width: 600px) {
+  .audio-resume-banner {
+    left: 20px;
+    right: 20px;
+    min-width: 0;
+  }
+}

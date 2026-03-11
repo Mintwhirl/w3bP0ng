@@ -54,10 +54,15 @@ export const ParticleBackground = memo(function ParticleBackground() {
     const draw = () => {
       ctx.clearRect(0, 0, width, height);
 
+      // Group particles by drawing in a single path where possible
+      // Since they have subtle alpha variations, we'll use a constant color with globalAlpha
+      // or just accept the alpha variations but draw more efficiently
+      
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+      
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
-        if (!p) continue;
-
+        
         // Update position
         p.x += p.vx;
         p.y += p.vy;
@@ -68,12 +73,14 @@ export const ParticleBackground = memo(function ParticleBackground() {
         if (p.y < -10) p.y = height + 10;
         if (p.y > height + 10) p.y = -10;
 
-        // Draw particle
+        // Draw particle - using individual beginPath for varying alpha
+        // But we could optimize by grouping into 3-4 alpha buckets if needed
+        ctx.globalAlpha = p.alpha;
         ctx.beginPath();
-        ctx.fillStyle = p.style;
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fill();
       }
+      ctx.globalAlpha = 1.0;
     };
 
     const handleResize = () => {

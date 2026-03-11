@@ -15,7 +15,7 @@
     "type-check": "tsc --noEmit",
     "build:strict": "tsc && vite build",
     "predeploy": "npm run build",
-    "deploy": "node scripts/deploy-simple.js",
+    "deploy": "vite-node scripts/deploy.ts",
     "deploy:vercel": "vercel --prod",
     "deploy:preview": "vercel",
     "deploy-verify": "node scripts/deploy.js verify",
@@ -31,8 +31,6 @@
     "analyze": "eslint . --ext .ts,.tsx --fix && npm run type-check"
   },
   "dependencies": {
-    "gsap": "^3.13.0",
-    "pixi.js": "^8.13.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "tone": "^15.1.22",

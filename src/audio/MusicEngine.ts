@@ -7,185 +7,157 @@ class MusicEngine {
   private drumSynth: Tone.MembraneSynth | null = null;
   private metalSynth: Tone.MetalSynth | null = null;
   private noiseSynth: Tone.NoiseSynth | null = null;
+  private filter: Tone.Filter | null = null;
   
   private loop: Tone.Loop | null = null;
   private currentTheme: MusicTheme = 'none';
-  private isStarted = false;
-  private volume: Tone.Volume;
+  private volume: Tone.Volume | null = null;
+  private baseBpm: number = 120;
 
   constructor() {
-    this.volume = new Tone.Volume(-12).toDestination();
+    // We don't create nodes here to avoid context mismatch at module load
   }
 
-  private async initialize() {
-    if (this.isStarted) return;
+  private setupInstruments() {
+    if (this.synth) return;
     
-    // PolySynth for melodies (SNES style square/saw)
+    console.log("[MusicEngine] Initializing instruments on context:", Tone.getContext().name);
+
+    this.volume = new Tone.Volume(-15).toDestination();
+    this.filter = new Tone.Filter(2000, "lowpass").connect(this.volume);
+
+    // Classic Square-Wave Chiptune Lead
     this.synth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'square' },
-      envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 }
-    }).connect(this.volume);
+      oscillator: { type: 'square8' },
+      envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.8 }
+    }).connect(this.filter);
 
-    // MembraneSynth for kicks
+    // Chiptune Kick
     this.drumSynth = new Tone.MembraneSynth({
-      pitchDecay: 0.05,
-      octaves: 4,
-      oscillator: { type: 'sine' }
+      pitchDecay: 0.05, octaves: 2, oscillator: { type: 'sine' }
     }).connect(this.volume);
 
-    // MetalSynth for hi-hats
+    // Chiptune Hi-hat (Metal)
     this.metalSynth = new Tone.MetalSynth({
-      frequency: 200,
-      envelope: { attack: 0.001, decay: 0.1, release: 0.01 },
-      harmonicity: 5.1,
-      modulationIndex: 32,
-      resonance: 4000,
-      octaves: 1.5
+      frequency: 250, envelope: { attack: 0.001, decay: 0.05, release: 0.01 },
+      harmonicity: 3, modulationIndex: 10, resonance: 2000
     }).connect(this.volume);
 
-    // NoiseSynth for snares
+    // Chiptune Snare (Noise)
     this.noiseSynth = new Tone.NoiseSynth({
       noise: { type: 'white' },
-      envelope: { attack: 0.001, decay: 0.2, sustain: 0 }
+      envelope: { attack: 0.001, decay: 0.1, sustain: 0 }
     }).connect(this.volume);
+  }
 
-    await Tone.start();
-    this.isStarted = true;
+  /**
+   * Generative Logic: Maps ball speed to Music Intensity
+   * @param speed Current ball velocity magnitude (approx 4 to 20)
+   */
+  public setIntensity(speed: number) {
+    if (!this.synth) return;
+
+    // 1. Modulate BPM (Tempo increases with speed)
+    // Map speed 4-15 to 100-180 BPM
+    const targetBpm = Math.min(200, Math.max(80, this.baseBpm + (speed - 5) * 5));
+    Tone.getTransport().bpm.rampTo(targetBpm, 0.5);
+
+    // 2. Modulate Filter (Music gets "brighter" as speed increases)
+    const freq = Math.min(8000, Math.max(800, 1000 + (speed * 300)));
+    this.filter?.frequency.rampTo(freq, 0.2);
+
+    // 3. Modulate Volume (Slight boost during high speed)
+    if (this.volume) {
+      const vol = Math.min(0, -15 + (speed - 5));
+      this.volume.volume.rampTo(vol, 0.5);
+    }
   }
 
   public setVolume(val: number) {
-    // val is 0 to 1
-    const db = Tone.gainToDb(val);
-    this.volume.volume.value = db - 12; // Base offset
+    if (!this.volume) this.setupInstruments();
+    const db = Tone.gainToDb(Math.max(0.0001, val));
+    this.volume?.volume.rampTo(db - 15, 0.1);
   }
 
   public async setTheme(theme: MusicTheme, bpm: number = 120) {
     if (this.currentTheme === theme && theme !== 'rhythm') return;
     
-    await this.initialize();
     this.stop();
+    this.setupInstruments();
     
     this.currentTheme = theme;
+    this.baseBpm = bpm;
     Tone.getTransport().bpm.value = bpm;
 
     if (theme === 'none') return;
 
     switch (theme) {
-      case 'main':
-        this.setupMainTheme();
-        break;
-      case 'classic':
-        this.setupClassicTheme();
-        break;
-      case 'puzzle':
-        this.setupPuzzleTheme();
-        break;
-      case 'rhythm':
-        this.setupRhythmTheme();
-        break;
-      case 'battle':
-        this.setupBattleTheme();
-        break;
-      case 'editor':
-        this.setupEditorTheme();
-        break;
+      case 'main': this.setupMainTheme(); break;
+      case 'classic': this.setupClassicTheme(); break;
+      case 'puzzle': this.setupPuzzleTheme(); break;
+      case 'rhythm': this.setupRhythmTheme(); break;
+      case 'battle': this.setupBattleTheme(); break;
+      case 'editor': this.setupEditorTheme(); break;
     }
 
-    Tone.getTransport().start();
+    Tone.getTransport().start("+0.1");
   }
 
   private setupMainTheme() {
-    // Chill menu vibe
+    // Ambient Arp
     this.loop = new Tone.Loop((time) => {
-      this.synth?.triggerAttackRelease('C3', '8n', time);
-      this.synth?.triggerAttackRelease('G3', '8n', time + Tone.Time('4n'));
-      this.synth?.triggerAttackRelease('A3', '8n', time + Tone.Time('2n'));
-      this.synth?.triggerAttackRelease('F3', '8n', time + Tone.Time('2n') + Tone.Time('4n'));
-      
-      // Soft kick on 1
+      const notes = ['C3', 'E3', 'G3', 'B3', 'A3', 'G3', 'E3', 'D3'];
+      notes.forEach((n, i) => {
+        this.synth?.triggerAttackRelease(n, '16n', time + Tone.Time('16n') * i);
+      });
       this.drumSynth?.triggerAttackRelease('C1', '8n', time);
-    }, '1m').start(0);
+    }, '2n').start(0);
   }
 
   private setupClassicTheme() {
-    // Standard arcade feel
+    // Driving Bassline
     this.loop = new Tone.Loop((time) => {
-      // Bass line
-      const seq = ['C2', 'C2', 'Eb2', 'F2'];
-      seq.forEach((note, i) => {
-        this.synth?.triggerAttackRelease(note, '16n', time + Tone.Time('4n') * i);
-      });
-
-      // Kick on 1 and 3
-      this.drumSynth?.triggerAttackRelease('C1', '8n', time);
-      this.drumSynth?.triggerAttackRelease('C1', '8n', time + Tone.Time('2n'));
+      this.synth?.triggerAttackRelease('C2', '16n', time);
+      this.synth?.triggerAttackRelease('G2', '16n', time + Tone.Time('8n'));
+      this.synth?.triggerAttackRelease('C2', '16n', time + Tone.Time('4n'));
       
-      // Hat on off-beats
+      this.drumSynth?.triggerAttackRelease('C1', '8n', time);
       this.metalSynth?.triggerAttackRelease(time + Tone.Time('8n'));
       this.metalSynth?.triggerAttackRelease(time + Tone.Time('4n') + Tone.Time('8n'));
-      this.metalSynth?.triggerAttackRelease(time + Tone.Time('2n') + Tone.Time('8n'));
-      this.metalSynth?.triggerAttackRelease(time + Tone.Time('2n') + Tone.Time('4n') + Tone.Time('8n'));
-    }, '1m').start(0);
+    }, '2n').start(0);
   }
 
   private setupPuzzleTheme() {
-    // Plucky and thoughtful
     this.loop = new Tone.Loop((time) => {
-      const notes = ['E4', 'G4', 'B4', 'A4'];
-      notes.forEach((note, i) => {
-        this.synth?.triggerAttackRelease(note, '16n', time + Tone.Time('4n') * i);
-      });
-      
-      this.metalSynth?.triggerAttackRelease(time + Tone.Time('4n'));
-      this.metalSynth?.triggerAttackRelease(time + Tone.Time('2n') + Tone.Time('4n'));
+      this.synth?.triggerAttackRelease('F4', '32n', time);
+      this.synth?.triggerAttackRelease('A4', '32n', time + Tone.Time('8n'));
+      this.metalSynth?.triggerAttackRelease(time + Tone.Time('2n'));
     }, '1m').start(0);
   }
 
   private setupRhythmTheme() {
-    // Punchy and very rhythmic
     this.loop = new Tone.Loop((time) => {
-      // Four-on-the-floor kick
       for (let i = 0; i < 4; i++) {
         this.drumSynth?.triggerAttackRelease('C1', '8n', time + Tone.Time('4n') * i);
+        this.metalSynth?.triggerAttackRelease(time + Tone.Time('4n') * i + Tone.Time('8n'));
+        if (i % 2 === 1) this.noiseSynth?.triggerAttackRelease('16n', time + Tone.Time('4n') * i);
       }
-      
-      // Snare on 2 and 4
-      this.noiseSynth?.triggerAttackRelease('8n', time + Tone.Time('4n'));
-      this.noiseSynth?.triggerAttackRelease('8n', time + Tone.Time('2n') + Tone.Time('4n'));
-      
-      // High energy bass synth
-      const bass = ['C2', 'G1', 'C2', 'Bb1'];
-      bass.forEach((note, i) => {
-        this.synth?.triggerAttackRelease(note, '16n', time + Tone.Time('4n') * i);
-        this.synth?.triggerAttackRelease(note, '16n', time + Tone.Time('4n') * i + Tone.Time('8n'));
-      });
     }, '1m').start(0);
   }
 
   private setupBattleTheme() {
-    // Fast and aggressive
     this.loop = new Tone.Loop((time) => {
-      // Fast kick
       for (let i = 0; i < 8; i++) {
         this.drumSynth?.triggerAttackRelease('C1', '16n', time + Tone.Time('8n') * i);
+        const note = i % 2 === 0 ? 'C2' : 'Eb2';
+        this.synth?.triggerAttackRelease(note, '32n', time + Tone.Time('8n') * i);
       }
-      
-      // Aggressive synth
-      const notes = ['C3', 'Eb3', 'F3', 'Gb3', 'F3', 'Eb3', 'C3', 'Bb2'];
-      notes.forEach((note, i) => {
-        this.synth?.triggerAttackRelease(note, '16n', time + Tone.Time('8n') * i);
-      });
-      
-      this.noiseSynth?.triggerAttackRelease('16n', time + Tone.Time('4n'));
-      this.noiseSynth?.triggerAttackRelease('16n', time + Tone.Time('2n') + Tone.Time('4n'));
     }, '1m').start(0);
   }
 
   private setupEditorTheme() {
-    // Creative and loopable
     this.loop = new Tone.Loop((time) => {
       this.synth?.triggerAttackRelease('G3', '4n', time);
-      this.synth?.triggerAttackRelease('D4', '4n', time + Tone.Time('2n'));
     }, '1m').start(0);
   }
 

@@ -8,7 +8,7 @@ import { checkAchievements } from '../core/achievements';
 import { ticker, TickerGroup } from '../engine/EngineTicker';
 import { GameRenderer } from '../rendering/GameRenderer';
 import { AudioManager } from '../audio/AudioManager';
-import { isAudioReady, setAudioTheme } from '../audio/AudioEngine';
+import { isAudioReady, setAudioTheme, setMusicIntensity } from '../audio/AudioEngine';
 import { LeaderboardSchema } from '../utils/storage';
 import { useTheme } from '../hooks/useTheme';
 import {

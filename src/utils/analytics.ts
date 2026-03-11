@@ -27,6 +27,19 @@ export interface AnalyticsEvent {
   };
 }
 
+const AnalyticsEventSchema = z.object({
+  type: z.string(),
+  timestamp: z.number(),
+  data: z.record(z.string(), z.any()),
+  context: z.object({
+    url: z.string(),
+    userAgent: z.string(),
+    resolution: z.string(),
+  }),
+});
+
+const AnalyticsEventsSchema = z.array(AnalyticsEventSchema);
+
 const GameModeSchema = z.enum(['title', 'menu', 'classic', 'puzzle', 'rhythm', 'battle-royale', 'editor']);
 
 class Analytics {
@@ -122,7 +135,8 @@ class Analytics {
       if (!stored) return [];
       
       const parsed = JSON.parse(stored);
-      return Array.isArray(parsed) ? parsed : [];
+      const result = AnalyticsEventsSchema.safeParse(parsed);
+      return result.success ? (result.data as AnalyticsEvent[]) : [];
     } catch (error) {
       console.warn('Failed to load analytics events:', error);
       return [];

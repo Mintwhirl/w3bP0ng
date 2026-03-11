@@ -18,12 +18,15 @@ import { AudioResumeBanner } from './ui/AudioResumeBanner';
 import { startPerformanceMonitoring } from './utils/perfMonitor';
 import { isAudioReady, setAudioTheme, unlockAudioOnUserGesture } from './audio/AudioEngine';
 import { getModeConfig, type GameModeId } from './modes/ModeRegistry';
+import { THEMES, applyThemeAsCSSVariables } from './rendering/types';
 
 import './App.css';
 import './styles/glassmorphism.css';
 
 function App() {
   const currentModeId = useGameStore((state) => state.currentMode) as GameModeId;
+  const currentThemeId = useGameStore((state) => state.currentTheme);
+  const reducedMotion = useGameStore((state) => state.reducedMotion);
   const setMode = useGameStore((state) => state.setMode);
   const { isInstallable, isOffline, isServiceWorkerUpdated, installPWA, reloadPage } = usePWA();
 
@@ -36,11 +39,28 @@ function App() {
     unlockAudioOnUserGesture();
   }, []);
 
+  // Reactive Theme Application
+  React.useEffect(() => {
+    const theme = THEMES[currentThemeId] || THEMES['synthwave-sunset'];
+    if (theme) {
+      applyThemeAsCSSVariables(theme);
+    }
+  }, [currentThemeId]);
+
+  // Reactive Reduced Motion Application
+  React.useEffect(() => {
+    if (reducedMotion) {
+      document.body.classList.add('reduced-motion');
+    } else {
+      document.body.classList.remove('reduced-motion');
+    }
+  }, [reducedMotion]);
+
   // Sync audio theme with current mode
   React.useEffect(() => {
     if (!isAudioReady()) return;
     setAudioTheme(modeConfig.audioTheme, false);
-  }, [modeConfig.audioTheme]);
+  }, [modeConfig.audioTheme, isAudioReady()]);
 
   // Manage body classes for global styling
   React.useEffect(() => {

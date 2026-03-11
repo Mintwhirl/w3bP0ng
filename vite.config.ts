@@ -37,7 +37,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom'],
-          'vendor-game': ['pixi.js', 'tone', 'zustand', 'gsap'],
+          'vendor-game': ['tone', 'zustand'],
         },
         assetFileNames: (assetInfo) => {
           const info = assetInfo.name?.split('.') || [];

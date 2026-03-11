@@ -14,6 +14,7 @@ import type {
   ExportOptions,
 } from './types';
 import { validateLevel } from './LevelEditorEngine';
+import { PRESET_LEVELS } from './presets';
 
 // ═══════════════════════════════════════════════════════════
 // ZOD SCHEMAS FOR VALIDATION
@@ -305,6 +306,9 @@ export function saveLevel(name: string, level: CustomLevel): boolean {
 
 export function loadLevel(name: string): CustomLevel | null {
   try {
+    // Check presets first
+    if (PRESET_LEVELS[name]) return PRESET_LEVELS[name];
+    
     const storage = initializeStorage();
     const level = storage.levels[name];
     if (!level) return null;
@@ -317,6 +321,7 @@ export function loadLevel(name: string): CustomLevel | null {
 
 export function deleteLevel(name: string): boolean {
   try {
+    if (PRESET_LEVELS[name]) return false; // Cannot delete presets
     const storage = initializeStorage();
     if (!storage.levels[name]) return false;
     delete storage.levels[name];
@@ -329,12 +334,18 @@ export function deleteLevel(name: string): boolean {
   }
 }
 
-export function listLevels(): { name: string; metadata: LevelMetadata }[] {
+export function listLevels(): { name: string; metadata: LevelMetadata; isPreset?: boolean }[] {
   try {
     const storage = initializeStorage();
-    return Object.entries(storage.levels)
-      .map(([name, level]) => ({ name, metadata: level.metadata }))
+    
+    const userLevels = Object.entries(storage.levels)
+      .map(([name, level]) => ({ name, metadata: level.metadata, isPreset: false }))
       .sort((a, b) => b.metadata.modified - a.metadata.modified);
+      
+    const presetLevels = Object.entries(PRESET_LEVELS)
+      .map(([name, level]) => ({ name, metadata: level.metadata, isPreset: true }));
+      
+    return [...presetLevels, ...userLevels];
   } catch (error) {
     return [];
   }
@@ -342,10 +353,11 @@ export function listLevels(): { name: string; metadata: LevelMetadata }[] {
 
 export function getLevelCount(): number {
   const storage = initializeStorage();
-  return storage.metadata.totalLevels;
+  return storage.metadata.totalLevels + Object.keys(PRESET_LEVELS).length;
 }
 
 export function levelExists(name: string): boolean {
+  if (name in PRESET_LEVELS) return true;
   const storage = initializeStorage();
   return name in storage.levels;
 }

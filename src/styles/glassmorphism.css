@@ -294,3 +294,60 @@
   background: rgba(168, 85, 247, 0.3);
   box-shadow: 0 0 30px rgba(168, 85, 247, 0.5);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   HIGH CONTRAST OVERRIDES
+   ═══════════════════════════════════════════════════════════ */
+
+.high-contrast {
+  --theme-paddle-left: #ffffff;
+  --theme-paddle-right: #ffffff;
+  --theme-ball: #ffffff;
+  --theme-score: #ffffff;
+  --theme-bg-gradient: linear-gradient(180deg, #000000 0%, #000000 100%);
+}
+
+.high-contrast .glass-panel,
+.high-contrast .glass-elevated,
+.high-contrast .glass-subtle,
+.high-contrast .hud-panel {
+  background: #000000 !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+.high-contrast .glass-button {
+  background: #000000 !important;
+  border: 2px solid #ffffff !important;
+  color: #ffffff !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+
+.high-contrast .glass-button:hover {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+.high-contrast .text-glow-primary,
+.high-contrast .text-glow-subtle,
+.high-contrast .text-glow-cyan,
+.high-contrast .text-glow-violet {
+  color: #ffffff !important;
+  text-shadow: none !important;
+}
+
+.high-contrast .cosmic-bg {
+  background: #000000 !important;
+}
+
+.high-contrast .cosmic-bg::before {
+  display: none;
+}
+
+.high-contrast .achievement-badge {
+  background: #000000 !important;
+  border: 1px solid #ffffff !important;
+  color: #ffffff !important;
+}

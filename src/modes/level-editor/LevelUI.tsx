@@ -62,13 +62,16 @@ export default function LevelUI({
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [saveName, setSaveName] = useState(editorState.levelMetadata.name);
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
-  const [customLevels, setCustomLevels] = useState<string[]>([]);
+  const [customLevels, setCustomLevels] = useState<{ name: string; isPreset?: boolean }[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
 
   // Load custom levels list when dialogs open
   useEffect(() => {
     if (showLoadDialog) {
-      const levels = listLevels().map(level => level.name);
+      const levels = listLevels().map(level => ({ 
+        name: level.name, 
+        isPreset: (level as any).isPreset 
+      }));
       setCustomLevels(levels);
     }
   }, [showLoadDialog]);
@@ -417,36 +420,43 @@ export default function LevelUI({
             <h3>📂 Load Level</h3>
             <div className="level-list">
               {customLevels.length === 0 ? (
-                <p>No custom levels found. Create one or import a level!</p>
+                <p>No levels found. Create one or import a level!</p>
               ) : (
-                customLevels.map((levelName) => (
+                customLevels.map((level) => (
                   <div
-                    key={levelName}
-                    className={`level-item ${selectedLevel === levelName ? 'selected' : ''}`}
-                    onClick={() => setSelectedLevel(levelName)}
+                    key={level.name}
+                    className={`level-item ${selectedLevel === level.name ? 'selected' : ''} ${level.isPreset ? 'preset-item' : ''}`}
+                    onClick={() => setSelectedLevel(level.name)}
                   >
-                    <span className="level-name">{levelName}</span>
+                    <div className="level-info-row">
+                      <span className="level-name">{level.name}</span>
+                      {level.isPreset && <span className="preset-badge">PRESET</span>}
+                    </div>
                     <div className="level-actions">
+                      {!level.isPreset && (
+                        <GlassButton
+                          neonAccent="magenta"
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedLevel(level.name);
+                            handleDelete();
+                          }}
+                          title="Delete Level"
+                        >
+                          🗑️
+                        </GlassButton>
+                      )}
                       <GlassButton
                         neonAccent="cyan"
                         size="small"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleExport(levelName);
+                          handleExport(level.name);
                         }}
+                        title="Export Level"
                       >
                         📤
-                      </GlassButton>
-                      <GlassButton
-                        neonAccent="magenta"
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedLevel(levelName);
-                          handleDelete();
-                        }}
-                      >
-                        🗑️
                       </GlassButton>
                     </div>
                   </div>
@@ -665,6 +675,23 @@ export default function LevelUI({
         .level-item.selected {
           background: rgba(34, 211, 238, 0.2);
           border-color: #22d3ee;
+        }
+
+        .level-info-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .preset-badge {
+          font-size: 9px;
+          background: rgba(34, 211, 238, 0.3);
+          color: #22d3ee;
+          padding: 2px 6px;
+          border-radius: 10px;
+          border: 1px solid rgba(34, 211, 238, 0.5);
+          font-weight: bold;
+          letter-spacing: 0.5px;
         }
 
         .level-name {

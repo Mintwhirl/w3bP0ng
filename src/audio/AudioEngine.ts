@@ -1,3 +1,4 @@
+import * as Tone from 'tone';
 import { musicEngine, type MusicTheme } from './MusicEngine';
 
 let audioCtx: AudioContext | null = null;
@@ -7,7 +8,9 @@ let isUnlocked = false;
 export function getAudioContext(): AudioContext {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    console.log("[AudioEngine] Created AudioContext (suspended)");
+    // Link Tone.js to this specific context immediately
+    Tone.setContext(audioCtx);
+    console.log("[AudioEngine] Created AudioContext and linked Tone.js");
   }
   return audioCtx;
 }
@@ -18,11 +21,14 @@ export function getAudioContextState(): AudioContextState {
 
 export async function ensureAudioStarted(): Promise<boolean> {
   const ctx = getAudioContext();
+  
+  // Start Tone.js (handles context resume internally if linked)
+  await Tone.start();
+  
   if (ctx.state === "suspended") {
     try {
       await ctx.resume();
       console.log("[AudioEngine] AudioContext resumed");
-      return ctx.state === "running";
     } catch (err) {
       console.warn("[AudioEngine] resume() failed:", err);
       return false;
@@ -39,7 +45,17 @@ export function unlockAudioOnUserGesture() {
     const success = await ensureAudioStarted();
     if (success) {
       isUnlocked = true;
-      console.log("[AudioEngine] Audio unlocked by gesture");
+      console.log("[AudioEngine] Audio & Tone.js unlocked by gesture");
+      // Trigger a tiny silent sound to "prime" the speakers on iOS
+      const ctx = getAudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      gain.gain.value = 0;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(0);
+      osc.stop(0.1);
+
       document.removeEventListener("click", unlock);
       document.removeEventListener("keydown", unlock);
       document.removeEventListener("touchstart", unlock);
@@ -105,4 +121,12 @@ export function setAudioTheme(themeId: string, _crossfade: boolean = true, bpm?:
 
   const theme = themeMap[themeId] || 'none';
   musicEngine.setTheme(theme, bpm);
+}
+
+/**
+ * Maps ball speed to music intensity (BPM and filter brightness)
+ */
+export function setMusicIntensity(speed: number) {
+  if (!currentSettings.musicEnabled || !isAudioReady()) return;
+  musicEngine.setIntensity(speed);
 }
