@@ -20,10 +20,11 @@ class MusicEngine {
 
   private setupInstruments() {
     if (this.synth) return;
-    
+
     console.log("[MusicEngine] Initializing instruments on context:", Tone.getContext().name);
 
-    this.volume = new Tone.Volume(-15).toDestination();
+    // Increased volume from -15dB to -5dB for better audibility
+    this.volume = new Tone.Volume(-5).toDestination();
     this.filter = new Tone.Filter(2000, "lowpass").connect(this.volume);
 
     // Classic Square-Wave Chiptune Lead
@@ -57,6 +58,12 @@ class MusicEngine {
   public setIntensity(speed: number) {
     if (!this.synth) return;
 
+    // Only modify BPM if transport is actually running
+    if (Tone.getTransport().state !== 'started') {
+      console.log("[MusicEngine] setIntensity skipped - transport not running");
+      return;
+    }
+
     // 1. Modulate BPM (Tempo increases with speed)
     // Map speed 4-15 to 100-180 BPM
     const targetBpm = Math.min(200, Math.max(80, this.baseBpm + (speed - 5) * 5));
@@ -80,11 +87,34 @@ class MusicEngine {
   }
 
   public async setTheme(theme: MusicTheme, bpm: number = 120) {
-    if (this.currentTheme === theme && theme !== 'rhythm') return;
-    
+    console.log("[MusicEngine] setTheme called:", theme, "current:", this.currentTheme, "bpm:", bpm);
+
+    // Don't return early if we need to start music or if theme is 'none'
+    const transportState = Tone.getTransport().state;
+    const needsRestart = transportState !== 'started';
+
+    // Always restart if transport state is 'stopped' or undefined
+    const forceRestart = !transportState || transportState === 'stopped';
+
+    if (this.currentTheme === theme && !needsRestart && !forceRestart && theme !== 'rhythm' && theme !== 'none') {
+      console.log("[MusicEngine] Theme already active and transport running, skipping");
+      return;
+    }
+
+    console.log("[MusicEngine] Starting theme:", theme, "transport state:", transportState);
+
     this.stop();
+
+    // CRITICAL FIX: Ensure Tone.js is started BEFORE creating instruments
+    // This ensures all Tone.js nodes are properly initialized
+    await Tone.start().catch(err => {
+      console.warn("[MusicEngine] Tone.start() failed:", err);
+    });
+    console.log("[MusicEngine] Tone.js started, context:", Tone.getContext().name);
+
+    // Now create instruments after Tone.js is initialized
     this.setupInstruments();
-    
+
     this.currentTheme = theme;
     this.baseBpm = bpm;
     Tone.getTransport().bpm.value = bpm;
@@ -100,7 +130,33 @@ class MusicEngine {
       case 'editor': this.setupEditorTheme(); break;
     }
 
+    // Wait for Tone to load everything
+    await Tone.loaded();
+
+    // Start transport and wait for it to actually be running
+    console.log("[MusicEngine] About to start transport, current state:", Tone.getTransport().state);
     Tone.getTransport().start("+0.1");
+
+    // Verify transport is running after startup
+    await new Promise(resolve => setTimeout(resolve, 200));
+    const actualTransportState = Tone.getTransport().state;
+    console.log("[MusicEngine] Transport state after 200ms:", actualTransportState);
+
+    // If transport is still not started, try again
+    if (actualTransportState !== 'started') {
+      console.warn("[MusicEngine] Transport not started, retrying...");
+      Tone.getTransport().start();
+      await new Promise(resolve => setTimeout(resolve, 100));
+      console.log("[MusicEngine] Transport state after retry:", Tone.getTransport().state);
+    }
+
+    // Play a test note to verify audio is working
+    setTimeout(() => {
+      console.log("[MusicEngine] Playing test note, transport state:", Tone.getTransport().state);
+      this.synth?.triggerAttackRelease('C4', '8n');
+    }, 500);
+
+    console.log("[MusicEngine] Theme set, transport state after start:", Tone.getTransport().state);
   }
 
   private setupMainTheme() {
@@ -116,15 +172,18 @@ class MusicEngine {
 
   private setupClassicTheme() {
     // Driving Bassline
+    console.log("[MusicEngine] setupClassicTheme - creating loop");
     this.loop = new Tone.Loop((time) => {
+      console.log("[MusicEngine] Loop callback firing at time:", time);
       this.synth?.triggerAttackRelease('C2', '16n', time);
       this.synth?.triggerAttackRelease('G2', '16n', time + Tone.Time('8n'));
       this.synth?.triggerAttackRelease('C2', '16n', time + Tone.Time('4n'));
-      
+
       this.drumSynth?.triggerAttackRelease('C1', '8n', time);
       this.metalSynth?.triggerAttackRelease(time + Tone.Time('8n'));
       this.metalSynth?.triggerAttackRelease(time + Tone.Time('4n') + Tone.Time('8n'));
     }, '2n').start(0);
+    console.log("[MusicEngine] Classic theme loop started");
   }
 
   private setupPuzzleTheme() {
