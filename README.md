@@ -85,10 +85,12 @@ npm run preview
 
 ## 🛠️ Tech Stack
 
-- **React 19**: Modern functional components with hooks
+- **React 19.1.1**: Modern functional components with hooks
 - **Vite**: Lightning-fast development and build tools
-- **HTML5 Canvas**: High-performance game rendering
-- **Web Audio API**: Real-time procedural audio
+- **Tone.js 15.1.22**: Procedural music engine with transport-based sequencing
+- **Zustand 5.0.8**: Global state management across game modes
+- **HTML5 Canvas 2D**: High-performance game rendering
+- **Web Audio API + Tone.js**: Real-time procedural audio and dynamic music themes
 - **CSS3**: Advanced styling with glassmorphism effects
 - **ESLint**: Code quality and consistency
 
@@ -110,29 +112,31 @@ npm run lint     # Run code quality checks
 ```
 
 ### Architecture
-- **gameStateRef**: Main game state using useRef for performance
-- **Component Structure**: Single PongGame component with modular game logic
-- **Animation Loop**: Proper requestAnimationFrame usage with cleanup
+- **State Management**: Zustand global store (`useGameStore`) with persistent storage
+- **Mode Registry**: Centralized mode configuration with lazy-loaded components
+- **Dual Theme System**:
+  - **`w3bp0ng-theme.config.js`**: Game rendering theme (Canvas 2D colors for paddles, balls, particles)
+  - **`src/rendering/types.ts`**: UI theming (CSS variables, backgrounds, glassmorphism)
+- **Component Structure**: Per-mode components with shared game engine utilities
+- **Animation Loop**: `EngineTicker.ts` centralized timing system with proper cleanup
 - **Power-up System**: Modular spawn timers and effect management
 
 ## 🎯 Roadmap
 
-### Phase 1: Mobile Support (Next)
-- Touch controls for paddle movement
-- Responsive canvas for different screen sizes
-- Mobile-optimized UI and performance
+### Implemented Features
+- 5 game modes: Classic, Physics Puzzle, Rhythm, Battle Royale, Level Editor
+- Procedural music engine with dynamic intensity
+- Achievement system with toast notifications
+- PWA with offline support and installation
+- Save data persistence with validation
+- Centralized mode registry with lazy-loaded components
 
-### Phase 2: Enhanced Game Modes
-- Tournament mode with brackets
-- Time attack challenges
-- Survival mode with increasing difficulty
-- Local leaderboard system
-
-### Phase 3: Advanced Features
-- Background music with synthwave soundtrack
-- Enhanced particle effects and screen transitions
-- WebGL renderer upgrade for advanced visuals
-- PWA features for offline play
+### Future Enhancements
+- Multiplayer support (WebRTC-based)
+- Level sharing platform (import/export custom levels)
+- Additional music themes and instruments
+- Enhanced particle systems
+- Touch controls for mobile devices
 
 ## 🤝 Contributing
 
@@ -152,7 +156,7 @@ This project is open source and available under the [MIT License](LICENSE).
 
 - **Synthwave Aesthetic**: Inspired by 80s retro-futurism and neon aesthetics
 - **Game Mechanics**: Enhanced version of the classic Atari Pong
-- **Sound Design**: Procedural audio using Web Audio API
+- **Audio Design**: Procedural audio and music using Web Audio API + Tone.js
 - **Visual Effects**: Custom particle systems and screen shake implementation
 
 ## 🌟 Acknowledgments
