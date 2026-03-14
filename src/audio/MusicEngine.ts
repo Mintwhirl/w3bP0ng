@@ -2,117 +2,113 @@ import * as Tone from 'tone';
 
 export type MusicTheme = 'main' | 'classic' | 'puzzle' | 'rhythm' | 'battle' | 'editor' | 'none';
 
+/**
+ * Procedural Chiptune Engine
+ * Generates SNES/GameBoy style multi-track music using functional synthesis
+ */
 class MusicEngine {
-  private synth: Tone.PolySynth | null = null;
+  // Instruments
+  private leadSynth: Tone.PolySynth | null = null;
+  private bassSynth: Tone.MonoSynth | null = null;
+  private padSynth: Tone.PolySynth | null = null;
   private drumSynth: Tone.MembraneSynth | null = null;
-  private metalSynth: Tone.MetalSynth | null = null;
-  private noiseSynth: Tone.NoiseSynth | null = null;
-  private filter: Tone.Filter | null = null;
+  private noiseSnare: Tone.NoiseSynth | null = null;
+  private hiHat: Tone.MetalSynth | null = null;
   
-  private loop: Tone.Loop | null = null;
+  // Effects
+  private masterVolume: Tone.Volume | null = null;
+  private lowpass: Tone.Filter | null = null;
+  private bitcrusher: Tone.BitCrusher | null = null;
+  
+  // State
   private currentTheme: MusicTheme = 'none';
-  private volume: Tone.Volume | null = null;
   private baseBpm: number = 120;
+  private intensity: number = 1.0;
+  private loops: Tone.Loop[] = [];
 
   constructor() {
-    // We don't create nodes here to avoid context mismatch at module load
+    // Lazy initialization on first setTheme
   }
 
   private setupInstruments() {
-    if (this.synth) return;
+    if (this.leadSynth) return;
 
-    console.log("[MusicEngine] Initializing instruments on context:", Tone.getContext().name);
+    console.log("[MusicEngine] Initializing Chiptune Orchestra");
 
-    // Increased volume from -15dB to -5dB for better audibility
-    this.volume = new Tone.Volume(-5).toDestination();
-    this.filter = new Tone.Filter(2000, "lowpass").connect(this.volume);
+    this.masterVolume = new Tone.Volume(-10).toDestination();
+    this.lowpass = new Tone.Filter(4000, "lowpass").connect(this.masterVolume);
+    this.bitcrusher = new Tone.BitCrusher(4).connect(this.lowpass);
 
-    // Classic Square-Wave Chiptune Lead
-    this.synth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'square8' },
-      envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.8 }
-    }).connect(this.filter);
+    // Track 1: Square Wave Lead (The "GameBoy" Sound)
+    this.leadSynth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'square4' },
+      envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1.0 }
+    }).connect(this.bitcrusher);
 
-    // Chiptune Kick
+    // Track 2: Pulse Wave Bass (The "NES" Power)
+    this.bassSynth = new Tone.MonoSynth({
+      oscillator: { type: 'pulse' },
+      envelope: { attack: 0.01, decay: 0.2, sustain: 0.4, release: 0.1 },
+      filter: { Q: 2, type: 'lowpass', rolloff: -24 },
+      filterEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.5, release: 0.8, baseFrequency: 200, octaves: 2 }
+    }).connect(this.bitcrusher);
+
+    // Track 3: Triangle/Soft Wave Harmony
+    this.padSynth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.1, decay: 0.5, sustain: 0.5, release: 2.0 }
+    }).connect(this.lowpass);
+
+    // Track 4: Percussion
     this.drumSynth = new Tone.MembraneSynth({
-      pitchDecay: 0.05, octaves: 2, oscillator: { type: 'sine' }
-    }).connect(this.volume);
+      pitchDecay: 0.05, octaves: 4, oscillator: { type: 'sine' }
+    }).connect(this.masterVolume);
 
-    // Chiptune Hi-hat (Metal)
-    this.metalSynth = new Tone.MetalSynth({
-      frequency: 250, envelope: { attack: 0.001, decay: 0.05, release: 0.01 },
-      harmonicity: 3, modulationIndex: 10, resonance: 2000
-    }).connect(this.volume);
-
-    // Chiptune Snare (Noise)
-    this.noiseSynth = new Tone.NoiseSynth({
+    this.noiseSnare = new Tone.NoiseSynth({
       noise: { type: 'white' },
-      envelope: { attack: 0.001, decay: 0.1, sustain: 0 }
-    }).connect(this.volume);
+      envelope: { attack: 0.001, decay: 0.2, sustain: 0 }
+    }).connect(this.masterVolume);
+
+    this.hiHat = new Tone.MetalSynth({
+      frequency: 200, envelope: { attack: 0.001, decay: 0.1, release: 0.01 },
+      harmonicity: 5.1, modulationIndex: 32, resonance: 4000, octaves: 1.5
+    }).connect(this.masterVolume);
   }
 
   /**
-   * Generative Logic: Maps ball speed to Music Intensity
-   * @param speed Current ball velocity magnitude (approx 4 to 20)
+   * Generative Music Intensity Modulator
    */
   public setIntensity(speed: number) {
-    if (!this.synth) return;
+    if (!this.leadSynth) return;
+    
+    this.intensity = Math.min(2.0, Math.max(0.5, speed / 5));
 
-    // Only modify BPM if transport is actually running
-    if (Tone.getTransport().state !== 'started') {
-      console.log("[MusicEngine] setIntensity skipped - transport not running");
-      return;
-    }
-
-    // 1. Modulate BPM (Tempo increases with speed)
-    // Map speed 4-15 to 100-180 BPM
-    const targetBpm = Math.min(200, Math.max(80, this.baseBpm + (speed - 5) * 5));
+    // 1. Dynamic Tempo
+    const targetBpm = Math.min(200, Math.max(80, this.baseBpm + (speed - 5) * 6));
     Tone.getTransport().bpm.rampTo(targetBpm, 0.5);
 
-    // 2. Modulate Filter (Music gets "brighter" as speed increases)
-    const freq = Math.min(8000, Math.max(800, 1000 + (speed * 300)));
-    this.filter?.frequency.rampTo(freq, 0.2);
-
-    // 3. Modulate Volume (Slight boost during high speed)
-    if (this.volume) {
-      const vol = Math.min(0, -15 + (speed - 5));
-      this.volume.volume.rampTo(vol, 0.5);
+    // 2. Harmonic Brightness
+    const freq = Math.min(12000, 1500 + (speed * 400));
+    this.lowpass?.frequency.rampTo(freq, 0.2);
+    
+    // 3. Bitcrusher Depth (More "crunch" as game intensifies)
+    if (this.bitcrusher) {
+      const bits = Math.max(2, Math.min(8, 9 - (speed / 3)));
+      this.bitcrusher.bits.value = bits;
     }
   }
 
   public setVolume(val: number) {
-    if (!this.volume) this.setupInstruments();
+    if (!this.masterVolume) this.setupInstruments();
     const db = Tone.gainToDb(Math.max(0.0001, val));
-    this.volume?.volume.rampTo(db - 15, 0.1);
+    this.masterVolume?.volume.rampTo(db - 10, 0.1);
   }
 
   public async setTheme(theme: MusicTheme, bpm: number = 120) {
-    console.log("[MusicEngine] setTheme called:", theme, "current:", this.currentTheme, "bpm:", bpm);
-
-    // Don't return early if we need to start music or if theme is 'none'
-    const transportState = Tone.getTransport().state;
-    const needsRestart = transportState !== 'started';
-
-    // Always restart if transport state is 'stopped' or undefined
-    const forceRestart = !transportState || transportState === 'stopped';
-
-    if (this.currentTheme === theme && !needsRestart && !forceRestart && theme !== 'rhythm' && theme !== 'none') {
-      console.log("[MusicEngine] Theme already active and transport running, skipping");
-      return;
-    }
-
-    console.log("[MusicEngine] Starting theme:", theme, "transport state:", transportState);
+    if (this.currentTheme === theme && Tone.getTransport().state === 'started') return;
 
     this.stop();
-
-    // CRITICAL FIX: Ensure Tone.js is started BEFORE creating instruments
-    // This ensures all Tone.js nodes are properly initialized
-    await Tone.start().catch(err => {
-      console.warn("[MusicEngine] Tone.start() failed:", err);
-    });
-    console.log("[MusicEngine] Tone.js started, context:", Tone.getContext().name);
-
-    // Now create instruments after Tone.js is initialized
+    await Tone.start();
     this.setupInstruments();
 
     this.currentTheme = theme;
@@ -122,110 +118,156 @@ class MusicEngine {
     if (theme === 'none') return;
 
     switch (theme) {
-      case 'main': this.setupMainTheme(); break;
-      case 'classic': this.setupClassicTheme(); break;
-      case 'puzzle': this.setupPuzzleTheme(); break;
-      case 'rhythm': this.setupRhythmTheme(); break;
-      case 'battle': this.setupBattleTheme(); break;
-      case 'editor': this.setupEditorTheme(); break;
+      case 'main': this.composeMainTheme(); break;
+      case 'classic': this.composeClassicTheme(); break;
+      case 'puzzle': this.composePuzzleTheme(); break;
+      case 'rhythm': this.composeRhythmTheme(); break;
+      case 'battle': this.composeBattleTheme(); break;
+      case 'editor': this.composeEditorTheme(); break;
     }
 
-    // Wait for Tone to load everything
     await Tone.loaded();
-
-    // Start transport and wait for it to actually be running
-    console.log("[MusicEngine] About to start transport, current state:", Tone.getTransport().state);
     Tone.getTransport().start("+0.1");
-
-    // Verify transport is running after startup
-    await new Promise(resolve => setTimeout(resolve, 200));
-    const actualTransportState = Tone.getTransport().state;
-    console.log("[MusicEngine] Transport state after 200ms:", actualTransportState);
-
-    // If transport is still not started, try again
-    if (actualTransportState !== 'started') {
-      console.warn("[MusicEngine] Transport not started, retrying...");
-      Tone.getTransport().start();
-      await new Promise(resolve => setTimeout(resolve, 100));
-      console.log("[MusicEngine] Transport state after retry:", Tone.getTransport().state);
-    }
-
-    // Play a test note to verify audio is working
-    setTimeout(() => {
-      console.log("[MusicEngine] Playing test note, transport state:", Tone.getTransport().state);
-      this.synth?.triggerAttackRelease('C4', '8n');
-    }, 500);
-
-    console.log("[MusicEngine] Theme set, transport state after start:", Tone.getTransport().state);
   }
 
-  private setupMainTheme() {
-    // Ambient Arp
-    this.loop = new Tone.Loop((time) => {
-      const notes = ['C3', 'E3', 'G3', 'B3', 'A3', 'G3', 'E3', 'D3'];
-      notes.forEach((n, i) => {
-        this.synth?.triggerAttackRelease(n, '16n', time + Tone.Time('16n') * i);
+  /**
+   * MAIN THEME: Heroic Arpeggios & Steady Beat
+   */
+  private composeMainTheme() {
+    const scale = ['C4', 'Eb4', 'F4', 'G4', 'Bb4'];
+    
+    // Arpeggio Lead
+    this.loops.push(new Tone.Loop((time) => {
+      const pattern = [0, 2, 3, 4, 3, 2, 0, -1]; // Index mapping
+      pattern.forEach((p, i) => {
+        if (p === -1) return;
+        const note = scale[p % scale.length];
+        this.leadSynth?.triggerAttackRelease(note, '16n', time + Tone.Time('16n') * i);
       });
+    }, '2n').start(0));
+
+    // Syncopated Bass
+    this.loops.push(new Tone.Loop((time) => {
+      this.bassSynth?.triggerAttackRelease('C2', '8n', time);
+      this.bassSynth?.triggerAttackRelease('C2', '16n', time + Tone.Time('4n') + Tone.Time('8n'));
+      this.bassSynth?.triggerAttackRelease('Bb1', '8n', time + Tone.Time('2n'));
+    }, '1m').start(0));
+
+    // Basic 4-on-the-floor
+    this.loops.push(new Tone.Loop((time) => {
       this.drumSynth?.triggerAttackRelease('C1', '8n', time);
-    }, '2n').start(0);
+      this.drumSynth?.triggerAttackRelease('C1', '8n', time + Tone.Time('4n'));
+      this.drumSynth?.triggerAttackRelease('C1', '8n', time + Tone.Time('2n'));
+      this.drumSynth?.triggerAttackRelease('C1', '8n', time + Tone.Time('2n') + Tone.Time('4n'));
+      
+      this.noiseSnare?.triggerAttackRelease('16n', time + Tone.Time('4n'));
+      this.noiseSnare?.triggerAttackRelease('16n', time + Tone.Time('2n') + Tone.Time('4n'));
+    }, '1m').start(0));
   }
 
-  private setupClassicTheme() {
-    // Driving Bassline
-    console.log("[MusicEngine] setupClassicTheme - creating loop");
-    this.loop = new Tone.Loop((time) => {
-      console.log("[MusicEngine] Loop callback firing at time:", time);
-      this.synth?.triggerAttackRelease('C2', '16n', time);
-      this.synth?.triggerAttackRelease('G2', '16n', time + Tone.Time('8n'));
-      this.synth?.triggerAttackRelease('C2', '16n', time + Tone.Time('4n'));
+  /**
+   * CLASSIC THEME: Driving "Megaman" Style High-Energy Chiptune
+   */
+  private composeClassicTheme() {
+    // Dynamic Bassline (Octave Jumps)
+    this.loops.push(new Tone.Loop((time) => {
+      const root = 'G2';
+      this.bassSynth?.triggerAttackRelease(root, '16n', time);
+      this.bassSynth?.triggerAttackRelease(root, '16n', time + Tone.Time('16n'));
+      this.bassSynth?.triggerAttackRelease('G3', '16n', time + Tone.Time('8n'));
+      this.bassSynth?.triggerAttackRelease(root, '16n', time + Tone.Time('8n') + Tone.Time('16n'));
+      
+      this.bassSynth?.triggerAttackRelease('F2', '16n', time + Tone.Time('4n'));
+      this.bassSynth?.triggerAttackRelease('F3', '16n', time + Tone.Time('4n') + Tone.Time('8n'));
+    }, '2n').start(0));
 
+    // Melodic Motifs
+    this.loops.push(new Tone.Loop((time) => {
+      const melody = ['G4', 'Bb4', 'C5', 'D5', 'F5', 'D5', 'C5', 'Bb4'];
+      melody.forEach((note, i) => {
+        const vel = i % 2 === 0 ? 0.8 : 0.5;
+        this.leadSynth?.triggerAttackRelease(note, '16n', time + Tone.Time('8n') * i, vel);
+      });
+    }, '1m').start(0));
+
+    // Fast Hi-Hats & Snare
+    this.loops.push(new Tone.Loop((time) => {
+      for(let i=0; i<8; i++) {
+        this.hiHat?.triggerAttackRelease(time + Tone.Time('8n') * i, 0.1);
+      }
+      this.noiseSnare?.triggerAttackRelease('16n', time + Tone.Time('4n'));
+      this.noiseSnare?.triggerAttackRelease('16n', time + Tone.Time('2n') + Tone.Time('4n'));
+    }, '1m').start(0));
+  }
+
+  /**
+   * PUZZLE THEME: Ambient, Thoughtful Melodies
+   */
+  private composePuzzleTheme() {
+    this.loops.push(new Tone.Loop((time) => {
+      const chords = [['A3', 'C4', 'E4'], ['G3', 'B3', 'D4'], ['F3', 'A3', 'C4']];
+      const chord = chords[Math.floor(time / 2) % chords.length];
+      this.padSynth?.triggerAttackRelease(chord, '1n', time);
+    }, '2m').start(0));
+
+    this.loops.push(new Tone.Loop((time) => {
+      const notes = ['E5', 'G5', 'A5', 'C6'];
+      const note = notes[Math.floor(Math.random() * notes.length)];
+      this.leadSynth?.triggerAttackRelease(note, '8n', time + Tone.Time('4n') * (Math.random() > 0.5 ? 1 : 2));
+    }, '1m').start(0));
+  }
+
+  /**
+   * RHYTHM THEME: Heavy Bass & Dynamic Beats
+   */
+  private composeRhythmTheme() {
+    this.loops.push(new Tone.Loop((time) => {
       this.drumSynth?.triggerAttackRelease('C1', '8n', time);
-      this.metalSynth?.triggerAttackRelease(time + Tone.Time('8n'));
-      this.metalSynth?.triggerAttackRelease(time + Tone.Time('4n') + Tone.Time('8n'));
-    }, '2n').start(0);
-    console.log("[MusicEngine] Classic theme loop started");
+      this.drumSynth?.triggerAttackRelease('C1', '8n', time + Tone.Time('8n') * 3);
+      this.noiseSnare?.triggerAttackRelease('8n', time + Tone.Time('4n'));
+    }, '2n').start(0));
+
+    this.loops.push(new Tone.Loop((time) => {
+      this.bassSynth?.triggerAttackRelease('E2', '16n', time);
+      this.bassSynth?.triggerAttackRelease('E2', '16n', time + Tone.Time('8n'));
+      this.bassSynth?.triggerAttackRelease('G2', '16n', time + Tone.Time('4n'));
+    }, '2n').start(0));
   }
 
-  private setupPuzzleTheme() {
-    this.loop = new Tone.Loop((time) => {
-      this.synth?.triggerAttackRelease('F4', '32n', time);
-      this.synth?.triggerAttackRelease('A4', '32n', time + Tone.Time('8n'));
-      this.metalSynth?.triggerAttackRelease(time + Tone.Time('2n'));
-    }, '1m').start(0);
+  /**
+   * BATTLE THEME: Intense, Fast-Paced Chaos
+   */
+  private composeBattleTheme() {
+    this.loops.push(new Tone.Loop((time) => {
+      this.drumSynth?.triggerAttackRelease('C1', '16n', time);
+      this.drumSynth?.triggerAttackRelease('C1', '16n', time + Tone.Time('16n') * 2);
+      this.noiseSnare?.triggerAttackRelease('16n', time + Tone.Time('8n'));
+    }, '4n').start(0));
+
+    this.loops.push(new Tone.Loop((time) => {
+      const seq = ['A2', 'A2', 'C3', 'A2', 'D3', 'A2', 'Eb3', 'D3'];
+      seq.forEach((note, i) => {
+        this.bassSynth?.triggerAttackRelease(note, '16n', time + Tone.Time('16n') * i);
+      });
+    }, '2n').start(0));
   }
 
-  private setupRhythmTheme() {
-    this.loop = new Tone.Loop((time) => {
-      for (let i = 0; i < 4; i++) {
-        this.drumSynth?.triggerAttackRelease('C1', '8n', time + Tone.Time('4n') * i);
-        this.metalSynth?.triggerAttackRelease(time + Tone.Time('4n') * i + Tone.Time('8n'));
-        if (i % 2 === 1) this.noiseSynth?.triggerAttackRelease('16n', time + Tone.Time('4n') * i);
-      }
-    }, '1m').start(0);
-  }
-
-  private setupBattleTheme() {
-    this.loop = new Tone.Loop((time) => {
-      for (let i = 0; i < 8; i++) {
-        this.drumSynth?.triggerAttackRelease('C1', '16n', time + Tone.Time('8n') * i);
-        const note = i % 2 === 0 ? 'C2' : 'Eb2';
-        this.synth?.triggerAttackRelease(note, '32n', time + Tone.Time('8n') * i);
-      }
-    }, '1m').start(0);
-  }
-
-  private setupEditorTheme() {
-    this.loop = new Tone.Loop((time) => {
-      this.synth?.triggerAttackRelease('G3', '4n', time);
-    }, '1m').start(0);
+  /**
+   * EDITOR THEME: Minimalist Grid Music
+   */
+  private composeEditorTheme() {
+    this.loops.push(new Tone.Loop((time) => {
+      this.leadSynth?.triggerAttackRelease('G4', '16n', time);
+      this.hiHat?.triggerAttackRelease(time + Tone.Time('4n'));
+    }, '1m').start(0));
   }
 
   public stop() {
-    if (this.loop) {
-      this.loop.stop();
-      this.loop.dispose();
-      this.loop = null;
-    }
+    this.loops.forEach(l => {
+      l.stop();
+      l.dispose();
+    });
+    this.loops = [];
     Tone.getTransport().stop();
     Tone.getTransport().cancel();
   }
