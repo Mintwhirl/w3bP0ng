@@ -34,7 +34,6 @@ export function AudioResumeBanner() {
   };
 
   if (!show) return null;
-...
 
   return (
     <GlassPanel 
