@@ -3,7 +3,7 @@
  * 8-player elimination arena with BeatSync-integrated dynamic finale effects
  */
 
-import { W3BP0NG_THEME } from '../../../w3bp0ng-theme.config';
+import { getActiveTheme } from '../../theme/ThemeManager';
 import type {
   BattleRoyaleState,
   BattleRoyaleRenderState,
@@ -98,10 +98,11 @@ function renderBackground(
   height: number,
   effects: VisualEffects
 ): void {
+  const theme = getActiveTheme();
   // Base cosmic gradient
   const gradient = ctx.createLinearGradient(0, 0, 0, height);
-  gradient.addColorStop(0, W3BP0NG_THEME.colors.bg_primary_dark);
-  gradient.addColorStop(1, W3BP0NG_THEME.colors.bg_primary_light);
+  gradient.addColorStop(0, theme.colors.background_primary);
+  gradient.addColorStop(1, theme.colors.background_secondary);
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, width, height);
 
@@ -119,6 +120,7 @@ function renderBeatSyncedParticles(
   intensity: number,
   beatProgress: number
 ): void {
+  const theme = getActiveTheme();
   const particleCount = 60;
   const pulseAmount = Math.sin(beatProgress * Math.PI) * intensity;
 
@@ -137,7 +139,7 @@ function renderBeatSyncedParticles(
 
     // Color cycling based on beat
     const colorProgress = (i / particleCount + beatProgress * 0.1) % 1;
-    const color = colorProgress < 0.5 ? W3BP0NG_THEME.colors.accent_cyan : W3BP0NG_THEME.colors.accent_violet;
+    const color = colorProgress < 0.5 ? theme.colors.neon_secondary : theme.colors.neon_tertiary;
 
     ctx.fillStyle = color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
     ctx.shadowBlur = 5 * (1 + pulseAmount);
@@ -161,6 +163,7 @@ function renderArena(
   _state: BattleRoyaleState, // State parameter for future use
   beatProgress: number
 ): void {
+  const theme = getActiveTheme();
   const centerX = width / 2;
   const centerY = height / 2;
   const arenaRadius = Math.min(width, height) * 0.4;
@@ -173,10 +176,10 @@ function renderArena(
   ctx.save();
 
   // Outer glow layer
-  ctx.strokeStyle = W3BP0NG_THEME.colors.accent_neon;
+  ctx.strokeStyle = theme.colors.neon_primary;
   ctx.lineWidth = 4 + Math.sin(beatProgress * Math.PI * 2) * 2;
   ctx.shadowBlur = 20 + Math.sin(beatProgress * Math.PI) * 10;
-  ctx.shadowColor = W3BP0NG_THEME.colors.accent_neon;
+  ctx.shadowColor = theme.colors.neon_primary;
 
   // Draw octagonal arena
   ctx.beginPath();
@@ -195,7 +198,7 @@ function renderArena(
   ctx.stroke();
 
   // Inner glass panel
-  ctx.strokeStyle = W3BP0NG_THEME.colors.glass_border + '40';
+  ctx.strokeStyle = theme.colors.glass_border + '40';
   ctx.lineWidth = 2;
   ctx.shadowBlur = 0;
   ctx.stroke();
@@ -335,12 +338,13 @@ function renderBalls(ctx: CanvasRenderingContext2D, balls: Ball[]): void {
  * Render ball with motion trail
  */
 function renderBall(ctx: CanvasRenderingContext2D, ball: Ball): void {
+  const theme = getActiveTheme();
   // Render trail first
   ball.trail.forEach((point, index) => {
     const alpha = point.opacity * (index / ball.trail.length);
     const size = ball.radius * (1 - index / ball.trail.length * 0.5);
 
-    ctx.fillStyle = W3BP0NG_THEME.colors.accent_cyan + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+    ctx.fillStyle = theme.colors.neon_secondary + Math.floor(alpha * 255).toString(16).padStart(2, '0');
     ctx.beginPath();
     ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
     ctx.fill();
@@ -351,10 +355,10 @@ function renderBall(ctx: CanvasRenderingContext2D, ball: Ball): void {
 
   // Neon glow
   ctx.shadowBlur = 20;
-  ctx.shadowColor = W3BP0NG_THEME.colors.accent_cyan;
+  ctx.shadowColor = theme.colors.neon_secondary;
 
   // Ball body
-  ctx.fillStyle = W3BP0NG_THEME.colors.accent_cyan;
+  ctx.fillStyle = theme.colors.neon_secondary;
   ctx.beginPath();
   ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
   ctx.fill();
@@ -369,8 +373,8 @@ function renderBall(ctx: CanvasRenderingContext2D, ball: Ball): void {
     ball.radius
   );
   highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-  highlightGradient.addColorStop(0.5, W3BP0NG_THEME.colors.accent_cyan + 'CC');
-  highlightGradient.addColorStop(1, W3BP0NG_THEME.colors.accent_cyan + '00');
+  highlightGradient.addColorStop(0.5, theme.colors.neon_secondary + 'CC');
+  highlightGradient.addColorStop(1, theme.colors.neon_secondary + '00');
 
   ctx.fillStyle = highlightGradient;
   ctx.beginPath();
@@ -410,6 +414,7 @@ function renderScreenGlow(
   intensity: number,
   beatProgress: number
 ): void {
+  const theme = getActiveTheme();
   const width = ctx.canvas.width;
   const height = ctx.canvas.height;
 
@@ -417,7 +422,7 @@ function renderScreenGlow(
 
   // Pulsing radial gradient from edges
   const pulseIntensity = Math.sin(beatProgress * Math.PI) * 0.3 + 0.7;
-  const glowColor = W3BP0NG_THEME.colors.accent_neon;
+  const glowColor = theme.colors.neon_primary;
 
   const gradient = ctx.createRadialGradient(
     width / 2,
@@ -446,6 +451,7 @@ function renderFinalePulse(
   beatProgress: number,
   intensity: number
 ): void {
+  const theme = getActiveTheme();
   const width = ctx.canvas.width;
   const height = ctx.canvas.height;
 
@@ -458,10 +464,10 @@ function renderFinalePulse(
     const alpha = (1 - phase) * intensity * 0.5;
 
     if (alpha > 0.01) {
-      ctx.strokeStyle = W3BP0NG_THEME.colors.accent_cyan + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+      ctx.strokeStyle = theme.colors.neon_secondary + Math.floor(alpha * 255).toString(16).padStart(2, '0');
       ctx.lineWidth = 3 * (1 - phase);
       ctx.shadowBlur = 15 * intensity;
-      ctx.shadowColor = W3BP0NG_THEME.colors.accent_cyan;
+      ctx.shadowColor = theme.colors.neon_secondary;
 
       ctx.beginPath();
       ctx.arc(width / 2, height / 2, radius, 0, Math.PI * 2);
@@ -479,6 +485,7 @@ function renderHUD(
   ctx: CanvasRenderingContext2D,
   state: BattleRoyaleRenderState
 ): void {
+  const theme = getActiveTheme();
   const { game } = state;
   const width = ctx.canvas.width;
   const height = ctx.canvas.height;
@@ -487,18 +494,18 @@ function renderHUD(
 
   // Players remaining counter
   const aliveCount = game.players.filter(p => p.alive).length;
-  ctx.font = `bold 24px ${W3BP0NG_THEME.typography.fontFamily.primary}`;
-  ctx.fillStyle = W3BP0NG_THEME.colors.text_primary;
+  ctx.font = `bold 24px ${theme.typography.fontFamily.primary}`;
+  ctx.fillStyle = theme.colors.text_primary;
   ctx.shadowBlur = 10;
-  ctx.shadowColor = W3BP0NG_THEME.colors.accent_cyan;
+  ctx.shadowColor = theme.colors.neon_secondary;
   ctx.textAlign = 'center';
   ctx.fillText(`Players: ${aliveCount}`, width / 2, 40);
 
   // Current tempo indicator
   const tempo = game.tempoPhase.bpm;
-  ctx.font = `16px ${W3BP0NG_THEME.typography.fontFamily.primary}`;
-  ctx.fillStyle = W3BP0NG_THEME.colors.text_secondary;
-  ctx.shadowColor = W3BP0NG_THEME.colors.accent_violet;
+  ctx.font = `16px ${theme.typography.fontFamily.primary}`;
+  ctx.fillStyle = theme.colors.text_secondary;
+  ctx.shadowColor = theme.colors.neon_tertiary;
   ctx.fillText(`${tempo} BPM`, width / 2, 65);
 
   // Game phase indicator
@@ -513,10 +520,10 @@ function renderHUD(
   }
 
   if (phaseText) {
-    ctx.font = `bold 32px ${W3BP0NG_THEME.typography.fontFamily.primary}`;
-    ctx.fillStyle = W3BP0NG_THEME.colors.accent_neon;
+    ctx.font = `bold 32px ${theme.typography.fontFamily.primary}`;
+    ctx.fillStyle = theme.colors.neon_primary;
     ctx.shadowBlur = 20;
-    ctx.shadowColor = W3BP0NG_THEME.colors.accent_neon;
+    ctx.shadowColor = theme.colors.neon_primary;
     ctx.fillText(phaseText, width / 2, height - 40);
   }
 

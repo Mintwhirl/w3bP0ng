@@ -10,7 +10,7 @@ import { GameRenderer } from '../rendering/GameRenderer';
 import { AudioManager } from '../audio/AudioManager';
 import { isAudioReady, setAudioTheme, setMusicIntensity } from '../audio/AudioEngine';
 import { LeaderboardSchema } from '../utils/storage';
-import { useTheme } from '../hooks/useTheme';
+import { useTheme } from '../theme/ThemeManager';
 import {
   computeAIMove,
 } from '../ai/AIController';
@@ -1065,8 +1065,8 @@ const PongGame = () => {
 
   // Update renderer theme when theme changes
   useEffect(() => {
-    if (rendererRef.current && theme) {
-      rendererRef.current.setTheme(theme);
+    if (rendererRef.current) {
+      rendererRef.current.syncTheme();
     }
   }, [theme]);
 

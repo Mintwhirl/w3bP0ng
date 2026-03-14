@@ -9,13 +9,14 @@
  * - Apple Liquid Glass aesthetic
  */
 
-import type { Theme, RenderState } from './types';
-import { DEFAULT_THEME } from './types';
+import type { RenderState } from './types';
+import { getGameColors } from '../theme/ThemeManager';
+import type { UnifiedTheme } from '../theme/UnifiedTheme';
 
 export class GameRenderer {
   private ctx: CanvasRenderingContext2D;
   private canvas: HTMLCanvasElement;
-  private theme: Theme;
+  private themeColors: UnifiedTheme['game'];
   private startTime: number;
   
   // Cache for performance
@@ -23,27 +24,25 @@ export class GameRenderer {
   private lastWidth: number = 0;
   private lastHeight: number = 0;
 
-  constructor(canvas: HTMLCanvasElement, theme: Theme = DEFAULT_THEME) {
+  constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       throw new Error('Failed to get 2D rendering context');
     }
     this.ctx = ctx;
-    this.theme = theme;
+    this.themeColors = getGameColors();
     this.startTime = performance.now();
     this.lastWidth = canvas.width;
     this.lastHeight = canvas.height;
   }
 
   /**
-   * Change the current theme
+   * Sync colors with the active theme
    */
-  setTheme(theme: Theme): void {
-    if (this.theme.id !== theme.id) {
-      this.theme = theme;
-      this.cachedGradient = null; // Invalidate cache
-    }
+  syncTheme(): void {
+    this.themeColors = getGameColors();
+    this.cachedGradient = null; // Invalidate cache
   }
 
   /**
@@ -94,7 +93,7 @@ export class GameRenderer {
    * Optimized with gradient caching
    */
   private renderBackground(): void {
-    const { gradient, animated, animationSpeed } = this.theme.background;
+    const { gradient, animated, animationSpeed } = this.themeColors.background;
 
     // For non-animated backgrounds, use the cache
     if (!animated && this.cachedGradient) {
@@ -151,13 +150,13 @@ export class GameRenderer {
     const centerX = this.canvas.width * 0.5;
 
     this.ctx.save();
-    this.ctx.shadowColor = this.theme.centerLine.shadowColor;
+    this.ctx.shadowColor = this.themeColors.centerLine.shadow;
     this.ctx.shadowBlur = 4;
     this.ctx.setLineDash([8, 16]);
     this.ctx.beginPath();
     this.ctx.moveTo(centerX, 0);
     this.ctx.lineTo(centerX, this.canvas.height);
-    this.ctx.strokeStyle = this.theme.centerLine.color;
+    this.ctx.strokeStyle = this.themeColors.centerLine.color;
     this.ctx.lineWidth = 2;
     this.ctx.stroke();
     this.ctx.restore();
@@ -171,9 +170,9 @@ export class GameRenderer {
     const threeQuarterX = this.canvas.width * 0.75;
 
     this.ctx.save();
-    this.ctx.shadowColor = this.theme.score.shadowColor;
+    this.ctx.shadowColor = this.themeColors.score.shadow;
     this.ctx.shadowBlur = 8;
-    this.ctx.fillStyle = this.theme.score.color;
+    this.ctx.fillStyle = this.themeColors.score.color;
     this.ctx.font = 'bold 64px Inter, sans-serif';
     this.ctx.textAlign = 'center';
     this.ctx.fillText(score.left.toString(), quarterX, 80);
@@ -191,9 +190,9 @@ export class GameRenderer {
     trail.forEach((particle, index) => {
       const alpha = (index / trail.length) * 0.5;
       this.ctx.globalAlpha = alpha;
-      this.ctx.shadowColor = this.theme.ball.shadowColor;
+      this.ctx.shadowColor = this.themeColors.ball.shadow;
       this.ctx.shadowBlur = 8;
-      this.ctx.fillStyle = this.theme.ball.trailColor;
+      this.ctx.fillStyle = this.themeColors.ball.trail;
       this.ctx.beginPath();
       this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
       this.ctx.fill();
@@ -214,13 +213,13 @@ export class GameRenderer {
     this.renderPaddle(
       paddles.left,
       'left',
-      this.theme.paddle.left,
+      this.themeColors.paddle_left,
       bigPaddlePowerUp
     );
     this.renderPaddle(
       paddles.right,
       'right',
-      this.theme.paddle.right,
+      this.themeColors.paddle_right,
       bigPaddlePowerUp
     );
   }
@@ -231,7 +230,7 @@ export class GameRenderer {
   private renderPaddle(
     paddle: { x: number; y: number; width: number; height: number },
     player: string,
-    colors: { color: string; shadowColor: string },
+    colors: { color: string; shadow: string },
     bigPaddlePowerUp: { active: boolean; player: string | null }
   ): void {
     this.ctx.save();
@@ -241,7 +240,7 @@ export class GameRenderer {
     const paddleY = isBig ? paddle.y - paddle.height / 2 : paddle.y;
 
     // Outer glow
-    this.ctx.shadowColor = colors.shadowColor;
+    this.ctx.shadowColor = colors.shadow;
     this.ctx.shadowBlur = isBig ? 20 : 12;
     this.ctx.fillStyle = colors.color;
     this.ctx.fillRect(paddle.x - 1, paddleY - 1, paddle.width + 2, paddleHeight + 2);
@@ -266,9 +265,9 @@ export class GameRenderer {
     this.ctx.save();
 
     // Outer glow
-    this.ctx.shadowColor = this.theme.ball.shadowColor;
+    this.ctx.shadowColor = this.themeColors.ball.shadow;
     this.ctx.shadowBlur = 15;
-    this.ctx.fillStyle = this.theme.ball.color;
+    this.ctx.fillStyle = this.themeColors.ball.color;
     this.ctx.beginPath();
     this.ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
     this.ctx.fill();
@@ -289,7 +288,7 @@ export class GameRenderer {
   private renderMultiBalls(
     extraBalls: Array<{ x: number; y: number; radius: number }>
   ): void {
-    const multiBallColor = this.theme.powerUp.multiBall;
+    const multiBallColor = this.themeColors.powerUp.multiBall;
 
     extraBalls.forEach((extraBall) => {
       this.ctx.save();
@@ -466,10 +465,10 @@ export class GameRenderer {
   }
 
   /**
-   * Get current theme
+   * Get current theme colors
    */
-  getTheme(): Theme {
-    return this.theme;
+  getThemeColors(): UnifiedTheme['game'] {
+    return this.themeColors;
   }
 
   /**

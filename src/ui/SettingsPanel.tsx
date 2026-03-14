@@ -6,11 +6,11 @@
 
 import { memo, useEffect } from 'react';
 import { useGameStore } from '../hooks/useGameStore';
-import { THEMES } from '../rendering/types';
+import { THEMES } from '../theme/UnifiedTheme';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import './SettingsPanel.css';
 
-const THEME_OPTIONS = Object.keys(THEMES);
+const THEME_OPTIONS = Object.keys(THEMES).filter(id => !['synthwave-sunset', 'rhythm-beats', 'battle-intensity', 'editor-pro'].includes(id));
 
 const SettingsPanel = memo(function SettingsPanel() {
   const {
@@ -127,7 +127,7 @@ const SettingsPanel = memo(function SettingsPanel() {
                     <div className="theme-preview" style={{
                       background: themeId === 'high-contrast' 
                         ? '#000' 
-                        : `linear-gradient(135deg, ${theme.paddle.left.color}, ${theme.paddle.right.color})`,
+                        : `linear-gradient(135deg, ${theme.game.paddle_left.color}, ${theme.game.paddle_right.color})`,
                       border: themeId === 'high-contrast' ? '2px solid #fff' : 'none'
                     }} aria-hidden="true"></div>
                     <span className="theme-name">{theme.name}</span>

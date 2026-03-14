@@ -18,10 +18,9 @@ import { AudioResumeBanner } from './ui/AudioResumeBanner';
 import { startPerformanceMonitoring } from './utils/perfMonitor';
 import { isAudioReady, setAudioTheme, unlockAudioOnUserGesture } from './audio/AudioEngine';
 import { getModeConfig, type GameModeId } from './modes/ModeRegistry';
-import { THEMES, applyThemeAsCSSVariables } from './rendering/types';
 
 import './App.css';
-import './styles/glassmorphism.css';
+import { setTheme } from './theme/ThemeManager';
 
 function App() {
   const currentModeId = useGameStore((state) => state.currentMode) as GameModeId;
@@ -41,11 +40,9 @@ function App() {
 
   // Reactive Theme Application
   React.useEffect(() => {
-    const theme = THEMES[currentThemeId] || THEMES['synthwave-sunset'];
-    if (theme) {
-      applyThemeAsCSSVariables(theme);
-    }
+    setTheme(currentThemeId);
   }, [currentThemeId]);
+
 
   // Reactive Reduced Motion Application
   React.useEffect(() => {

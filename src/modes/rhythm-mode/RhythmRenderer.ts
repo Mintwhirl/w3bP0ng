@@ -3,7 +3,7 @@
  * Renders rhythm mode with pulsing effects synchronized to music
  */
 
-import { W3BP0NG_THEME } from '../../../w3bp0ng-theme.config';
+import { getActiveTheme } from '../../theme/ThemeManager';
 import type { RhythmGameState } from './types';
 
 /**
@@ -16,6 +16,7 @@ function renderBeatPulse(
   canvasWidth: number,
   canvasHeight: number
 ): void {
+  const theme = getActiveTheme();
   const centerX = canvasWidth / 2;
   const centerY = canvasHeight / 2;
   const maxRadius = Math.max(canvasWidth, canvasHeight);
@@ -29,10 +30,10 @@ function renderBeatPulse(
 
     if (alpha > 0.01) {
       ctx.save();
-      ctx.strokeStyle = W3BP0NG_THEME.colors.accent_cyan + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+      ctx.strokeStyle = theme.colors.neon_secondary + Math.floor(alpha * 255).toString(16).padStart(2, '0');
       ctx.lineWidth = 3 * (1 - progress) + 1;
       ctx.shadowBlur = 20 * intensity;
-      ctx.shadowColor = W3BP0NG_THEME.colors.accent_cyan;
+      ctx.shadowColor = theme.colors.neon_secondary;
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
       ctx.stroke();
@@ -53,14 +54,15 @@ function renderComboGlow(
 ): void {
   if (combo === 0) return;
 
+  const theme = getActiveTheme();
   // Color shifts based on multiplier: cyan → violet → magenta
   let glowColor: string;
   if (multiplier < 2) {
-    glowColor = W3BP0NG_THEME.colors.accent_cyan;
+    glowColor = theme.colors.neon_secondary;
   } else if (multiplier < 4) {
-    glowColor = W3BP0NG_THEME.colors.accent_violet;
+    glowColor = theme.colors.neon_tertiary;
   } else {
-    glowColor = W3BP0NG_THEME.colors.accent_neon;
+    glowColor = theme.colors.neon_primary;
   }
 
   const intensity = Math.min(combo / 20, 1);
@@ -95,6 +97,7 @@ function renderBeatIndicator(
   canvasWidth: number,
   canvasHeight: number
 ): void {
+  const theme = getActiveTheme();
   const centerX = canvasWidth / 2;
   const indicatorY = canvasHeight - 60;
   const barWidth = 200;
@@ -109,7 +112,7 @@ function renderBeatIndicator(
   const progress = beatProgress;
   const progressWidth = barWidth * progress;
 
-  const barColor = progress > 0.8 ? W3BP0NG_THEME.colors.accent_cyan : W3BP0NG_THEME.colors.accent_violet;
+  const barColor = progress > 0.8 ? theme.colors.neon_secondary : theme.colors.neon_tertiary;
 
   ctx.fillStyle = barColor;
   ctx.shadowBlur = progress > 0.8 ? 15 : 5;
@@ -119,7 +122,7 @@ function renderBeatIndicator(
   // Pulsing indicator dot at the target
   if (progress > 0.8) {
     const pulseScale = 1 + Math.sin(Date.now() / 100) * 0.2;
-    ctx.fillStyle = W3BP0NG_THEME.colors.accent_cyan;
+    ctx.fillStyle = theme.colors.neon_secondary;
     ctx.shadowBlur = 20;
     ctx.beginPath();
     ctx.arc(centerX + barWidth / 2, indicatorY + barHeight / 2, 6 * pulseScale, 0, Math.PI * 2);
@@ -139,6 +142,7 @@ function renderBackgroundParticles(
   canvasWidth: number,
   canvasHeight: number
 ): void {
+  const theme = getActiveTheme();
   const particleCount = 50;
   const beatPulse = Math.sin(beatProgress * Math.PI) * intensity;
 
@@ -151,7 +155,7 @@ function renderBackgroundParticles(
     const size = 1 + beatPulse * 2;
     const alpha = 0.2 + beatPulse * 0.3;
 
-    const color = i % 2 === 0 ? W3BP0NG_THEME.colors.accent_cyan : W3BP0NG_THEME.colors.accent_violet;
+    const color = i % 2 === 0 ? theme.colors.neon_secondary : theme.colors.neon_tertiary;
 
     ctx.fillStyle = color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
     ctx.shadowBlur = 5 * beatPulse;
@@ -176,6 +180,7 @@ function renderBall(
   vy: number,
   beatProgress: number
 ): void {
+  const theme = getActiveTheme();
   const speed = Math.sqrt(vx * vx + vy * vy);
   const trailLength = Math.min(speed * 2, 30);
   const beatPulse = 1 + Math.sin(beatProgress * Math.PI) * 0.3;
@@ -194,7 +199,7 @@ function renderBall(
       const trailY = y + dy * trailLength * t;
       const trailAlpha = (1 - t) * 0.3;
 
-      ctx.fillStyle = W3BP0NG_THEME.colors.accent_cyan + Math.floor(trailAlpha * 255).toString(16).padStart(2, '0');
+      ctx.fillStyle = theme.colors.neon_secondary + Math.floor(trailAlpha * 255).toString(16).padStart(2, '0');
       ctx.beginPath();
       ctx.arc(trailX, trailY, radius * (1 - t * 0.3), 0, Math.PI * 2);
       ctx.fill();
@@ -202,9 +207,9 @@ function renderBall(
   }
 
   // Main ball with beat pulse
-  ctx.fillStyle = W3BP0NG_THEME.colors.accent_cyan;
+  ctx.fillStyle = theme.colors.neon_secondary;
   ctx.shadowBlur = 20 * beatPulse;
-  ctx.shadowColor = W3BP0NG_THEME.colors.accent_cyan;
+  ctx.shadowColor = theme.colors.neon_secondary;
   ctx.beginPath();
   ctx.arc(x, y, radius * beatPulse, 0, Math.PI * 2);
   ctx.fill();
@@ -212,8 +217,8 @@ function renderBall(
   // Inner glow
   const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius * beatPulse);
   gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-  gradient.addColorStop(0.5, W3BP0NG_THEME.colors.accent_cyan);
-  gradient.addColorStop(1, W3BP0NG_THEME.colors.accent_cyan + '00');
+  gradient.addColorStop(0.5, theme.colors.neon_secondary);
+  gradient.addColorStop(1, theme.colors.neon_secondary + '00');
   ctx.fillStyle = gradient;
   ctx.beginPath();
   ctx.arc(x, y, radius * beatPulse, 0, Math.PI * 2);
@@ -233,6 +238,7 @@ function renderPaddle(
   height: number,
   beatProgress: number
 ): void {
+  const theme = getActiveTheme();
   const beatPulse = Math.sin(beatProgress * Math.PI);
   const glowIntensity = 15 + beatPulse * 10;
 
@@ -240,14 +246,14 @@ function renderPaddle(
 
   // Outer glow
   ctx.shadowBlur = glowIntensity;
-  ctx.shadowColor = W3BP0NG_THEME.colors.accent_neon;
+  ctx.shadowColor = theme.colors.neon_primary;
 
   // Glassmorphic background
-  ctx.fillStyle = W3BP0NG_THEME.colors.accent_neon + '26'; // 15% opacity
+  ctx.fillStyle = theme.colors.neon_primary + '26'; // 15% opacity
   ctx.fillRect(x, y, width, height);
 
   // Border with beat pulse
-  ctx.strokeStyle = W3BP0NG_THEME.colors.accent_neon;
+  ctx.strokeStyle = theme.colors.neon_primary;
   ctx.lineWidth = 2 + beatPulse;
   ctx.strokeRect(x, y, width, height);
 
@@ -273,6 +279,7 @@ function renderComboDisplay(
 ): void {
   if (combo === 0) return;
 
+  const theme = getActiveTheme();
   const centerX = canvasWidth / 2;
   const topY = 100;
 
@@ -281,15 +288,15 @@ function renderComboDisplay(
   // Multiplier color
   let color: string;
   if (multiplier < 2) {
-    color = W3BP0NG_THEME.colors.accent_cyan;
+    color = theme.colors.neon_secondary;
   } else if (multiplier < 4) {
-    color = W3BP0NG_THEME.colors.accent_violet;
+    color = theme.colors.neon_tertiary;
   } else {
-    color = W3BP0NG_THEME.colors.accent_neon;
+    color = theme.colors.neon_primary;
   }
 
   // Combo text
-  ctx.font = `bold 36px ${W3BP0NG_THEME.typography.fontFamily.primary}`;
+  ctx.font = `bold 36px ${theme.typography.fontFamily.primary}`;
   ctx.fillStyle = color;
   ctx.shadowBlur = 15;
   ctx.shadowColor = color;
@@ -297,7 +304,7 @@ function renderComboDisplay(
   ctx.fillText(`${combo} COMBO`, centerX, topY);
 
   // Multiplier
-  ctx.font = `bold 24px ${W3BP0NG_THEME.typography.fontFamily.primary}`;
+  ctx.font = `bold 24px ${theme.typography.fontFamily.primary}`;
   ctx.fillText(`×${multiplier.toFixed(1)}`, centerX, topY + 35);
 
   ctx.restore();

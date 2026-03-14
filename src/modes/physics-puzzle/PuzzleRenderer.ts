@@ -3,7 +3,7 @@
  * Uses theme colors and glassmorphic effects
  */
 
-import { W3BP0NG_THEME } from '../../../w3bp0ng-theme.config';
+import { getActiveTheme } from '../../theme/ThemeManager';
 import type { PuzzleGameState, Block, Portal, BouncePad, GravityZone, Ball, Paddle } from './types';
 
 /**
@@ -41,6 +41,7 @@ export function renderPuzzleGame(
 function renderBlock(ctx: CanvasRenderingContext2D, block: Block): void {
   if (!block.active) return;
 
+  const theme = getActiveTheme();
   const { x, y, width, height, type, health } = block;
 
   // Determine color based on type
@@ -49,8 +50,8 @@ function renderBlock(ctx: CanvasRenderingContext2D, block: Block): void {
 
   switch (type) {
     case 'tough':
-      baseColor = W3BP0NG_THEME.colors.accent_neon;
-      glowColor = W3BP0NG_THEME.colors.accent_neon;
+      baseColor = theme.colors.neon_primary;
+      glowColor = theme.colors.neon_primary;
       break;
     case 'explosive':
       baseColor = '#ff0066';
@@ -65,8 +66,8 @@ function renderBlock(ctx: CanvasRenderingContext2D, block: Block): void {
       glowColor = '#999999';
       break;
     default: // 'normal'
-      baseColor = W3BP0NG_THEME.colors.accent_cyan;
-      glowColor = W3BP0NG_THEME.colors.accent_cyan;
+      baseColor = theme.colors.neon_secondary;
+      glowColor = theme.colors.neon_secondary;
   }
 
   ctx.save();
@@ -102,7 +103,7 @@ function renderBlock(ctx: CanvasRenderingContext2D, block: Block): void {
     ctx.shadowBlur = 5;
     ctx.shadowColor = '#ffffff';
     ctx.fillStyle = '#ffffff';
-    ctx.font = `bold 16px ${W3BP0NG_THEME.typography.fontFamily.primary}`;
+    ctx.font = `bold 16px ${theme.typography.fontFamily.primary}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(health.toString(), x + width / 2, y + height / 2);
@@ -114,17 +115,18 @@ function renderBlock(ctx: CanvasRenderingContext2D, block: Block): void {
 function renderPortal(ctx: CanvasRenderingContext2D, portal: Portal, currentTime: number): void {
   if (!portal.active) return;
 
+  const theme = getActiveTheme();
   const { x, y, radius, color } = portal;
 
   // Map portal colors to theme
   const colorMap: Record<string, string> = {
-    cyan: W3BP0NG_THEME.colors.accent_cyan,
-    magenta: W3BP0NG_THEME.colors.accent_neon,
+    cyan: theme.colors.neon_secondary,
+    magenta: theme.colors.neon_primary,
     green: '#00ff88',
     orange: '#ff8800',
   };
 
-  const portalColor = colorMap[color] || W3BP0NG_THEME.colors.accent_neon;
+  const portalColor = colorMap[color] || theme.colors.neon_primary;
 
   ctx.save();
 
@@ -177,8 +179,9 @@ function renderPortal(ctx: CanvasRenderingContext2D, portal: Portal, currentTime
 }
 
 function renderBouncePad(ctx: CanvasRenderingContext2D, pad: BouncePad): void {
+  const theme = getActiveTheme();
   const { x, y, width, height, angle } = pad;
-  const padColor = W3BP0NG_THEME.colors.accent_cyan;
+  const padColor = theme.colors.neon_secondary;
 
   ctx.save();
 
@@ -218,14 +221,15 @@ function renderBouncePad(ctx: CanvasRenderingContext2D, pad: BouncePad): void {
 }
 
 function renderGravityZone(ctx: CanvasRenderingContext2D, zone: GravityZone, currentTime: number): void {
+  const theme = getActiveTheme();
   const { x, y, width, height, strength } = zone;
 
   ctx.save();
 
   // Subtle overlay
   const overlayColor = strength > 0
-    ? W3BP0NG_THEME.colors.accent_neon
-    : W3BP0NG_THEME.colors.accent_cyan;
+    ? theme.colors.neon_primary
+    : theme.colors.neon_secondary;
 
   ctx.fillStyle = overlayColor + '10';
   ctx.fillRect(x, y, width, height);
@@ -255,8 +259,9 @@ function renderGravityZone(ctx: CanvasRenderingContext2D, zone: GravityZone, cur
 }
 
 function renderPaddle(ctx: CanvasRenderingContext2D, paddle: Paddle): void {
+  const theme = getActiveTheme();
   const { x, y, width, height } = paddle;
-  const paddleColor = W3BP0NG_THEME.colors.accent_neon;
+  const paddleColor = theme.colors.neon_primary;
 
   ctx.save();
 
@@ -300,8 +305,9 @@ function renderPaddle(ctx: CanvasRenderingContext2D, paddle: Paddle): void {
 function renderBall(ctx: CanvasRenderingContext2D, ball: Ball): void {
   if (!ball.active) return;
 
+  const theme = getActiveTheme();
   const { x, y, radius, vx, vy } = ball;
-  const ballColor = W3BP0NG_THEME.colors.accent_cyan;
+  const ballColor = theme.colors.neon_secondary;
 
   ctx.save();
 
