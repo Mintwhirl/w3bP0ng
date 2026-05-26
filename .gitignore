@@ -10,6 +10,13 @@ dist
 # Build outputs
 .vercel
 
+# Claude Code
+.claude/
+
+# Test and coverage outputs
+coverage/
+test-results/
+
 # cc-sessions runtime files
 sessions/sessions-state.json
 sessions/package.json

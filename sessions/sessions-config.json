@@ -30,7 +30,7 @@
   "environment": {
     "os": "windows",
     "shell": "powershell",
-    "developer_name": "kevin"
+    "developer_name": "mintwhirl"
   },
   "blocked_actions": {
     "implementation_only_tools": [

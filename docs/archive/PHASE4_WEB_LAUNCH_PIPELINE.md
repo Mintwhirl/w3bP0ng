@@ -4,8 +4,8 @@
 - Commit: 89a08cd (short)
 - Built assets: `dist/assets/index-jWJpSjkq.js`, `dist/assets/index-DkGelClm.css`
 - Build command: `npm run build` (passed locally)
-- Deployment (Production): https://w3bp0ng-rjjh08nta-kevin-stewarts-projects-28099358.vercel.app
-- ✅ Live Deployment Verified: https://w3bp0ng-8or9k3zz8-kevin-stewarts-projects-28099358.vercel.app
+- Deployment (Production): https://webpong.vercel.app
+- ✅ Live Deployment Verified: https://webpong.vercel.app
 
 ### Live Verification Matrix
 

@@ -135,7 +135,7 @@ const MainMenu = memo(function MainMenu() {
       {/* Footer */}
       <footer className="menu-footer animate-fadeIn" style={{ animationDelay: '0.8s' }}>
         <p>
-          © 2025 Kevin Stewart. All rights reserved.
+          © 2025 MintWhirl. All rights reserved.
           <br />
           <a
             href="https://github.com/mintwhirl/w3bP0ng"
